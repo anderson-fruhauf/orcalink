@@ -17,7 +17,7 @@ generator client {
 - Importar com extensao `.js`: `import { PrismaClient } from '../generated/prisma/client.js'`
 - Necessario por causa de `module: "nodenext"` no tsconfig.
 - Schema separado do config: `prisma/schema.prisma` + `prisma.config.ts` (carrega `dotenv/config`).
-- Nenhuma migration foi rodada ainda — task 01 executa `npx prisma migrate dev --name init`.
+- Migration `init` criada. User model usa `firebaseUid` (sem `passwordHash`).
 
 ## Comandos
 
@@ -39,12 +39,17 @@ docker compose config                          # Validar compose
 
 ## Arquitetura
 
+- **Autenticacao via Firebase Auth** — Firebase Client SDK no frontend, Firebase Admin SDK no backend.
+  - Frontend: `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `sendPasswordResetEmail`.
+  - Backend: `admin.auth().verifyIdToken(token)` no guard, lookup `firebaseUid → User → tenantId`.
+  - Sem `passport`, sem `bcrypt`, sem JWT customizado.
+  - Service account key em `firebase-service-account.json` (gitignored).
 - Multi-tenant via coluna `tenantId` em toda tabela — toda query DEVE filtrar por `tenantId`.
 - Magic Links sem cadastro para fornecedores (token HMAC).
 - Planos Free (limitado) e Pro (ilimitado) — guard por recurso.
 - Precos em **centavos** (`Int`) — nunca float/decimal.
 - Filas BullMQ com Redis para disparo de email.
-- Seed planejado: 1 tenant + 1 admin (`admin@orcalink.com / 123456`).
+- Seed: 1 tenant + 1 admin (`admin@orcalink.com / 123456`) criado via Firebase Admin SDK.
 
 ## Convencoes
 
@@ -57,7 +62,7 @@ docker compose config                          # Validar compose
 
 ## Estado atual
 
-Task 00 concluida (scaffold). Proximo passo: task 01 (Schema Prisma + Migrations). API e web compilam mas nao rodam sem PostgreSQL + Redis.
+Tasks 00 (scaffold) e 01 (schema + migration init) concluidas. Proximo passo: task 02 (Autenticacao Firebase). API e web compilam mas nao rodam sem PostgreSQL + Redis.
 
 ## Referencias
 

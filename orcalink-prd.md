@@ -45,7 +45,7 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 ### P0 — MVP (Lançamento)
 | Módulo | Funcionalidades |
 |---|---|
-| Autenticação | Cadastro/Login (E-mail/Senha), Recuperação de senha |
+| Autenticação | Cadastro/Login via Firebase Auth (E-mail/Senha), Recuperação de senha via Firebase |
 | Cadastros | Categorias, Produtos, Fornecedores (CRUDs completos) |
 | Cotações | Criação, inclusão de itens, associação de fornecedores, geração de Magic Links |
 | Disparo | E-mail transacional + Copiar Link / Compartilhar (sem WhatsApp) |
@@ -96,8 +96,8 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 ## 6. Requisitos Funcionais (RF)
 
 ### 6.1. Módulo de Autenticação e Configurações (Comprador)
-* **RF01 - Cadastro e Login:** O comprador deve conseguir criar uma conta na plataforma utilizando E-mail/Senha. O cadastro cria automaticamente uma Organização (tenant) vinculada ao usuário.
-* **RF02 - Recuperação de Senha:** O sistema deve oferecer fluxo de recuperação de senha via e-mail com token seguro e tempo de expiração.
+* **RF01 - Cadastro e Login:** O comprador deve conseguir criar uma conta na plataforma utilizando **Firebase Authentication** com E-mail/Senha. O cadastro no Firebase dispara a criação automática de uma Organização (tenant) vinculada ao usuário no backend. A verificação de identidade em todas as rotas protegidas é feita via Firebase ID Token verificado pelo Firebase Admin SDK no servidor.
+* **RF02 - Recuperação de Senha:** O fluxo de recuperação de senha é gerenciado integralmente pelo **Firebase Authentication** via `sendPasswordResetEmail()` no frontend, sem necessidade de endpoints customizados no backend.
 * **RF03 - Perfil da Empresa (P1):** O comprador deve poder configurar os dados da sua empresa (Nome/Razão Social, CNPJ, Telefone, Logotipo) para serem exibidos no cabeçalho das solicitações enviadas aos fornecedores.
 
 ### 6.2. Módulo de Gestão de Cadastros (CRUDs)

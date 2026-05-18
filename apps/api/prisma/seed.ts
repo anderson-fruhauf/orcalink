@@ -1,11 +1,22 @@
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import * as bcryptjs from 'bcryptjs';
+import { initializeApp, cert, type ServiceAccount } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 const pool = new pg.Pool({ connectionString: process.env['DATABASE_URL']! });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+// Initialize Firebase Admin SDK
+const serviceAccountPath = process.env['FIREBASE_SERVICE_ACCOUNT_PATH']
+  || resolve(process.cwd(), 'firebase-service-account.json');
+const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8')) as ServiceAccount;
+
+initializeApp({ credential: cert(serviceAccount) });
+const auth = getAuth();
 
 async function main() {
   console.log('Seeding database...');
@@ -19,17 +30,29 @@ async function main() {
   });
   console.log(`Tenant created: ${tenant.name} (${tenant.id})`);
 
-  // --- Admin User ---
-  const passwordHash = await bcryptjs.hash('123456', 10);
+  // --- Admin User (Firebase + Prisma) ---
+  let firebaseUser;
+  try {
+    firebaseUser = await auth.getUserByEmail('admin@orcalink.com');
+    console.log(`Firebase user already exists: ${firebaseUser.uid}`);
+  } catch {
+    firebaseUser = await auth.createUser({
+      email: 'admin@orcalink.com',
+      password: '123456',
+      displayName: 'Admin',
+    });
+    console.log(`Firebase user created: ${firebaseUser.uid}`);
+  }
+
   const admin = await prisma.user.create({
     data: {
       tenantId: tenant.id,
       email: 'admin@orcalink.com',
-      passwordHash,
+      firebaseUid: firebaseUser.uid,
       name: 'Admin',
     },
   });
-  console.log(`Admin user created: ${admin.email}`);
+  console.log(`Admin user created: ${admin.email} (firebaseUid: ${firebaseUser.uid})`);
 
   // --- Categories ---
   const categoriesData = [
