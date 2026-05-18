@@ -1,59 +1,67 @@
 # Orcalink — AGENTS.md
 
-## Estado atual
+## Pacote manager split
 
-Task 00 concluída: `apps/api/` (NestJS + Prisma) e `apps/web/` (React + Vite) scaffoldados com todas as dependências. Landing page em `landing/`, logotipos em `assets/logo/`.
+- `apps/api/` usa **yarn**. `apps/web/` usa **npm**.
+- Nao existe monorepo tool (workspaces, turbo, nx) — comandos rodam independentes por pasta.
 
-## Arquitetura
+## Prisma v7 (apps/api)
 
-- Monorepo simples (sem monorepo tool), estrutura:
-  - `apps/api/` — NestJS + Prisma v7 + PostgreSQL + Redis (BullMQ)
-  - `apps/web/` — React + Vite + TypeScript
-  - `landing/` — Landing page estática
-- **Multi-tenant** lógico via coluna `tenantId` em todas as tabelas
-- Magic Links para fornecedores (sem cadastro)
-- Planos: Free (limitado) e Pro (ilimitado)
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+```
 
-## Stack
-
-| Camada | Tech |
-|--------|------|
-| Backend | NestJS, TypeScript, Prisma v7, PostgreSQL, Redis, BullMQ, JWT, Resend |
-| Frontend | React, Vite, TypeScript, react-router-dom, TanStack Query, react-hook-form + zod, lucide-react, react-hot-toast |
-| Infra | Docker Compose (dev + prod), nginx (frontend prod) |
-
-## Design system
-
-Implementado em `apps/web/src/styles/tokens.css` (variáveis CSS), `reset.css`, `global.css` com fonte Inter + JetBrains Mono.
-
-## Tasks
-
-`tasks/README.md` lista 24 tasks numeradas (00→23). Implementar sequencialmente. Cada task tem critérios de aceite.
+- Importar com extensao `.js`: `import { PrismaClient } from '../generated/prisma/client.js'`
+- Necessario por causa de `module: "nodenext"` no tsconfig.
+- Schema separado do config: `prisma/schema.prisma` + `prisma.config.ts` (carrega `dotenv/config`).
+- Nenhuma migration foi rodada ainda — task 01 executa `npx prisma migrate dev --name init`.
 
 ## Comandos
 
 ```bash
-cd apps/api && yarn dev          # API em :3333
-cd apps/web && npm run dev       # Frontend em :5173
-npx prisma validate              # Validar schema (rodar de apps/api)
-docker compose config            # Validar compose (rodar da raiz)
+cd apps/api && yarn dev              # NestJS em :3333 (hot reload)
+cd apps/web && npm run dev           # Vite em :5173
+cd apps/api && yarn test             # Jest unitario
+cd apps/api && yarn test:e2e         # Jest E2E
+cd apps/api && npx prisma migrate dev # Criar migrations
+cd apps/api && npx prisma validate   # Validar schema
+cd apps/api && npx prisma generate   # Gerar client
+docker compose -f docker-compose.dev.yml up -d  # BD + Redis local
+docker compose config                          # Validar compose
 ```
 
-## Prisma v7
+## Tasks
 
-- O gerador `prisma-client` requer `output` explícito, definido como `../src/generated/prisma`
-- Importar via `import { PrismaClient } from '../generated/prisma/client.js'` (ou criar barrel export)
-- Gerado com: `npx prisma generate`
+24 issues numeradas (00→23) em https://github.com/anderson-fruhauf/orcalink/issues. Sequenciais por dependencia. Cada issue tem criterios de aceite e refs ao PRD.
 
-## Convenções
+## Arquitetura
 
-- Backend: NestJS modular (controllers, services, modules)
-- Frontend: SPA com Vite, lazy routes por módulo
-- Portas: API `:3333`, Web dev `:5173`
-- Seed: Criar tenant + usuário admin no seed do Prisma
-- `.env.example` na raiz e em `apps/api/`
+- Multi-tenant via coluna `tenantId` em toda tabela — toda query DEVE filtrar por `tenantId`.
+- Magic Links sem cadastro para fornecedores (token HMAC).
+- Planos Free (limitado) e Pro (ilimitado) — guard por recurso.
+- Precos em **centavos** (`Int`) — nunca float/decimal.
+- Filas BullMQ com Redis para disparo de email.
+- Seed planejado: 1 tenant + 1 admin (`admin@orcalink.com / 123456`).
 
+## Convencoes
 
-leia orcalink.md para entender melhor o projeto
-leia styles.md para entender melhor o design system
-leia DEVELOPMENT_GUIDE.md para entender melhor como desenvolver
+- Backend: NestJS modular (`modules/category/`, `modules/quotation/`, etc). Cada modulo tem `module`, `controller`, `service`, `dto/`, `.spec.ts`.
+- Frontend: lazy routes por modulo com React.lazy().
+- API prefixo `/api` em todas as rotas.
+- Paginacao obrigatoria: `{ data, meta: { total, page, limit, totalPages } }`.
+- Precos como `priceInCents: Int` (ex: R$ 150,00 = 15000).
+- Design tokens em `apps/web/src/styles/` — `tokens.css`, `reset.css`, `global.css`.
+
+## Estado atual
+
+Task 00 concluida (scaffold). Proximo passo: task 01 (Schema Prisma + Migrations). API e web compilam mas nao rodam sem PostgreSQL + Redis.
+
+## Referencias
+
+- `DEVELOPMENT_GUIDE.md` — TDD, SOLID, estrutura de modulos, convencoes de commit, checklist por task.
+- `tasks/README.md` — visao geral das 24 tasks.
+- `styles.md` — design system completo (cores, tipografia, espacamento, componentes).
+- `orcalink-prd.md` — requisitos de produto (RFs, RNFs, RNs).
