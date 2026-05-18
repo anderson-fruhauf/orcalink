@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orçalink — Cotações inteligentes, sem fricção</title>
+  <meta name="description"
+    content="Centralize cotações, envie para múltiplos fornecedores em um clique e compare preços em tempo real. Sem planilhas, sem e-mails perdidos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar scrolled" id="navbar">
+    <div class="container">
+      <a href="#" class="navbar-logo">
+        <svg width="32" height="32" viewBox="0 0 256 256" fill="none">
+          <path d="M104 176H72C45.49 176 24 154.51 24 128C24 101.49 45.49 80 72 80H104" stroke="#6366F1"
+            stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M152 80H184C210.51 80 232 101.49 232 128C232 154.51 210.51 176 184 176H152" stroke="#8B5CF6"
+            stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M88 128H168" stroke="#6366F1" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Orçalink
+      </a>
+      <div class="navbar-links">
+        <a href="#problema">Problema</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#recursos">Recursos</a>
+        <a href="#precos">Preços</a>
+        <a href="#cta" class="btn btn-primary">Começar grátis</a>
+      </div>
+      <button class="mobile-toggle" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <path d="M3 12h18M3 6h18M3 18h18" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <div class="container">
+      <div class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+        Plataforma de cotações B2B
+      </div>
+      <h1>Cotações inteligentes,<br><span>sem fricção.</span></h1>
+      <p>Envie sua lista de compras para múltiplos fornecedores em um clique. Eles respondem pelo celular, sem cadastro.
+        Você compara preços em tempo real.</p>
+      <div class="hero-cta">
+        <a href="#cta" class="btn btn-primary btn-lg">Começar grátis →</a>
+        <a href="#como-funciona" class="btn btn-outline btn-lg">Como funciona</a>
+      </div>
+    </div>
+    <div class="hero-wave">
+      <svg viewBox="0 0 1440 60" fill="none" preserveAspectRatio="none">
+        <path d="M0 60V20C360 50 720 0 1080 30C1260 45 1380 55 1440 50V60H0Z" fill="white" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- PROBLEMA -->
+  <section id="problema">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">O Problema</span>
+        <h2 class="section-title">Cotação manual é caos organizado.</h2>
+        <p class="section-subtitle mx-auto">Você ainda perde horas montando planilhas, enviando e-mails um a um e
+          perseguindo respostas no WhatsApp?</p>
+      </div>
+      <div class="pain-grid">
+        <div class="pain-card animate">
+          <div class="pain-icon red">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+          </div>
+          <h3>E-mails dispersos</h3>
+          <p>Respostas de fornecedores perdidas entre dezenas de threads. Sem padronização, sem rastreabilidade.</p>
+        </div>
+        <div class="pain-card animate">
+          <div class="pain-icon amber">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" x2="8" y1="13" y2="13" />
+              <line x1="16" x2="8" y1="17" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <h3>Planilhas intermináveis</h3>
+          <p>Copiar e colar preços manualmente em Excel. Um erro de digitação e a decisão de compra é comprometida.</p>
+        </div>
+        <div class="pain-card animate">
+          <div class="pain-icon blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <h3>WhatsApp sem controle</h3>
+          <p>Fornecedores respondem com áudios, PDFs e fotos. Impossível comparar, impossível auditar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section id="como-funciona" class="steps-section">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">Como funciona</span>
+        <h2 class="section-title">4 passos. Zero complicação.</h2>
+        <p class="section-subtitle mx-auto">Da criação da cotação à decisão de compra em minutos, não dias.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step animate">
+          <div class="step-number">1</div>
+          <h3>Crie sua cotação</h3>
+          <p>Monte a lista de produtos, defina quantidades e prazo limite.</p>
+        </div>
+        <div class="step animate">
+          <div class="step-number">2</div>
+          <h3>Selecione fornecedores</h3>
+          <p>Escolha quem vai receber. O sistema gera um Magic Link único para cada um.</p>
+        </div>
+        <div class="step animate">
+          <div class="step-number">3</div>
+          <h3>Fornecedor responde</h3>
+          <p>Pelo celular, sem cadastro, sem app. Apenas preenche preços e envia.</p>
+        </div>
+        <div class="step animate">
+          <div class="step-number">4</div>
+          <h3>Compare e decida</h3>
+          <p>Matriz comparativa com destaque automático do menor preço por item.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECURSOS -->
+  <section id="recursos">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">Recursos</span>
+        <h2 class="section-title">Tudo para cotar melhor.</h2>
+        <p class="section-subtitle mx-auto">Ferramentas pensadas para o comprador que não tem tempo a perder.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </div>
+          <h3>Magic Links</h3>
+          <p>Links únicos e seguros para cada fornecedor. Sem login, sem cadastro, sem fricção.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+              <line x1="12" x2="12.01" y1="18" y2="18" />
+            </svg>
+          </div>
+          <h3>Mobile-First</h3>
+          <p>Portal do fornecedor otimizado para celular com teclado numérico e máscara monetária.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="m19 9-5 5-4-4-3 3" />
+            </svg>
+          </div>
+          <h3>Matriz Comparativa</h3>
+          <p>Todos os preços lado a lado com destaque automático da melhor oferta por item.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+          </div>
+          <h3>Disparo por E-mail</h3>
+          <p>Envio automático de e-mails profissionais com a identidade do seu negócio.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <h3>Seguro e Confiável</h3>
+          <p>Tokens criptográficos, isolamento multi-tenant e conformidade LGPD.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <h3>Tempo Real</h3>
+          <p>Acompanhe quem respondeu, quem está pendente e encerre quando quiser.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREÇOS -->
+  <section id="precos" class="pricing-section">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-label">Preços</span>
+        <h2 class="section-title">Comece grátis. Escale quando precisar.</h2>
+        <p class="section-subtitle mx-auto">Sem cartão de crédito. Sem pegadinha. Sem prazo de teste.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card animate">
+          <div class="pricing-plan">Free</div>
+          <div class="pricing-price">R$ 0</div>
+          <div class="pricing-desc">Perfeito para validar o processo de cotação digital no seu negócio.</div>
+          <ul class="pricing-features">
+            <li>5 cotações ativas</li>
+            <li>10 fornecedores</li>
+            <li>50 produtos</li>
+            <li>20 e-mails / mês</li>
+            <li>Matriz comparativa</li>
+            <li>Magic Links seguros</li>
+            <li class="disabled">Disparo WhatsApp</li>
+            <li class="disabled">Importação CSV</li>
+          </ul>
+          <a href="#cta" class="btn btn-outline btn-lg">Criar conta grátis</a>
+        </div>
+        <div class="pricing-card featured animate">
+          <div class="pricing-plan">Pro</div>
+          <div class="pricing-price">Em breve</div>
+          <div class="pricing-desc">Para operações de compra que exigem volume e agilidade total.</div>
+          <ul class="pricing-features">
+            <li>Cotações ilimitadas</li>
+            <li>Fornecedores ilimitados</li>
+            <li>Produtos ilimitados</li>
+            <li>E-mails ilimitados</li>
+            <li>Matriz comparativa</li>
+            <li>Magic Links seguros</li>
+            <li>Suporte prioritário</li>
+            <li class="disabled">Disparo WhatsApp (em breve)</li>
+          </ul>
+          <a href="#cta" class="btn btn-primary btn-lg">Entrar na lista de espera</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section id="cta" class="cta-section">
+    <div class="container">
+      <h2>Pare de perder tempo com cotações manuais.</h2>
+      <p>Crie sua conta gratuita e envie a primeira cotação em menos de 5 minutos.</p>
+      <a href="#" class="btn btn-white btn-lg">Começar grátis agora →</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <svg width="26" height="26" viewBox="0 0 256 256" fill="none">
+            <path d="M104 176H72C45.49 176 24 154.51 24 128C24 101.49 45.49 80 72 80H104" stroke="#6366F1"
+              stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M152 80H184C210.51 80 232 101.49 232 128C232 154.51 210.51 176 184 176H152" stroke="#8B5CF6"
+              stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M88 128H168" stroke="#6366F1" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Orçalink
+        </div>
+        <div class="footer-links">
+          <a href="#">Termos de Uso</a>
+          <a href="#">Política de Privacidade</a>
+          <a href="#">Contato</a>
+        </div>
+      </div>
+      <div class="footer-copy">© 2026 Orçalink. Todos os direitos reservados.</div>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+
+</html>

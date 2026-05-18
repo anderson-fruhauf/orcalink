@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanType {
+  FREE
+  PRO
+}
+
+enum QuotationStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum ProposalStatus {
+  PENDING
+  SUBMITTED
+  EXPIRED
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  plan      PlanType @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  categories Category[]
+  products   Product[]
+  suppliers  Supplier[]
+  quotations Quotation[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  tenantId    String
+  categoryId  String
+  name        String
+  description String?
+  unit        String
+  internalCode String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  category        Category        @relation(fields: [categoryId], references: [id])
+  quotationItems  QuotationItem[]
+  proposalItems   ProposalItem[]
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  document    String?
+  contactName String?
+  email       String
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  quotations  QuotationSupplier[]
+  magicLinks  MagicLink[]
+  proposals   Proposal[]
+}
+
+model Quotation {
+  id          String          @id @default(uuid())
+  tenantId    String
+  title       String
+  deadline    DateTime
+  status      QuotationStatus @default(DRAFT)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
+  items      QuotationItem[]
+  suppliers  QuotationSupplier[]
+  magicLinks MagicLink[]
+  proposals  Proposal[]
+}
+
+model QuotationItem {
+  id          String @id @default(uuid())
+  quotationId String
+  productId   String
+  quantity    Int
+  observation String?
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+}
+
+model QuotationSupplier {
+  id           String @id @default(uuid())
+  quotationId  String
+  supplierId   String
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  supplier  Supplier  @relation(fields: [supplierId], references: [id])
+
+  @@unique([quotationId, supplierId])
+}
+
+model MagicLink {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  quotationId String
+  supplierId  String
+  active      Boolean  @default(true)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  supplier  Supplier  @relation(fields: [supplierId], references: [id])
+  proposal  Proposal?
+}
+
+model Proposal {
+  id            String         @id @default(uuid())
+  quotationId   String
+  supplierId    String
+  magicLinkId   String         @unique
+  status        ProposalStatus @default(PENDING)
+  deliveryDays  Int?
+  paymentTerms  String?
+  notes         String?
+  submittedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  quotation Quotation      @relation(fields: [quotationId], references: [id])
+  supplier  Supplier       @relation(fields: [supplierId], references: [id])
+  magicLink MagicLink      @relation(fields: [magicLinkId], references: [id])
+  items     ProposalItem[]
+}
+
+model ProposalItem {
+  id          String  @id @default(uuid())
+  proposalId  String
+  productId   String
+  unitPrice   Int
+  unavailable Boolean @default(false)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([proposalId, productId])
+}
