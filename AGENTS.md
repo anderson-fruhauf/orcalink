@@ -50,6 +50,11 @@ docker compose config                          # Validar compose
 - Precos em **centavos** (`Int`) — nunca float/decimal.
 - Filas BullMQ com Redis para disparo de email.
 - Seed: 1 tenant + 1 admin (`admin@orcalink.com / 123456`) criado via Firebase Admin SDK.
+- **Infraestrutura Custo Zero (MVP - Híbrida Scale-to-Zero)**:
+  - **Servidor**: Cloud Run (min-instances: 0, CPU alocada sob demanda) + Firebase Hosting.
+  - **PostgreSQL**: Supabase ou Neon DB (standby automático após inatividade).
+  - **Redis/BullMQ**: Upstash (Redis Serverless).
+  - **Migração**: 100% compatível com infra dedicada (Cloud SQL / Memorystore) ou VPS Docker alterando apenas as variáveis de ambiente (`DATABASE_URL` e `REDIS_URL`).
 
 ## Convencoes
 
