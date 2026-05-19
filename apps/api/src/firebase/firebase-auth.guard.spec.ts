@@ -1,8 +1,8 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FirebaseAuthGuard } from './firebase-auth.guard.js';
-import { FirebaseAdminService } from './firebase-admin.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { FirebaseAuthGuard } from './firebase-auth.guard';
+import { FirebaseAdminService } from './firebase-admin.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('FirebaseAuthGuard', () => {
   let guard: FirebaseAuthGuard;
