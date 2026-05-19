@@ -8,8 +8,11 @@ build/
 Thumbs.db
 
 # Firebase
-firebase-service-account.json
 firebase.json
 .firebaserc
-*/skills/*
+.firebase/
+firebase-service-account.json
 skills-lock.json
+.agents/*
+firebase.json
+.firebaserc
