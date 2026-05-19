@@ -21,3 +21,8 @@ firebase.json
 **/.env
 **/.env.local
 **/*.local
+firebase-service-account.json
+skills-lock.json
+.agents/*
+firebase.json
+.firebaserc
