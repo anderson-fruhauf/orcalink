@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('FirebaseAuthGuard', () => {
   let guard: FirebaseAuthGuard;
   let firebaseAdminService: jest.Mocked<FirebaseAdminService>;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any;
 
   const mockFirebaseAdminService = {
     verifyIdToken: jest.fn(),
