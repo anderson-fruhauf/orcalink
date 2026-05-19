@@ -9,3 +9,7 @@ Thumbs.db
 
 # Firebase
 firebase-service-account.json
+firebase.json
+.firebaserc
+*/skills/*
+skills-lock.json
