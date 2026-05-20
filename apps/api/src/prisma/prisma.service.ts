@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, ForbiddenException } from '@
 import { PrismaClient } from '../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { TenantContext } from '../common/context/tenant-context.js';
+import { TenantContext } from '../common/context/tenant-context';
 
 // Extensão portátil e testável de multi-tenancy
 export const getMultiTenancyExtension = (getTenantId: () => string | undefined) => {

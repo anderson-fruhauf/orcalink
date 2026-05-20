@@ -48,7 +48,7 @@ export class AuthService {
     }
 
     // Criar Tenant e User em uma transação do Prisma
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const tenant = await tx.tenant.create({
         data: {
           name: dto.companyName,
