@@ -7,10 +7,20 @@ build/
 .DS_Store
 Thumbs.db
 
+# Agent files
+.agents/
+skills-lock.json
+
 # Firebase
 firebase.json
 .firebaserc
 .firebase/
+
+# Firebase & Secret Keys
+**/firebase-service-account*.json
+**/.env
+**/.env.local
+**/*.local
 firebase-service-account.json
 skills-lock.json
 .agents/*
