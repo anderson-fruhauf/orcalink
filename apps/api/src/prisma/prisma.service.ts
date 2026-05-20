@@ -98,8 +98,19 @@ export class PrismaService
   get proposal() { return this._extendedClient.proposal; }
   get proposalItem() { return this._extendedClient.proposalItem; }
 
-  override async $transaction(args: any): Promise<any> {
-    return this._extendedClient.$transaction(args);
+  private _isInsideTransactionCall = false;
+
+  override async $transaction(args: any, options?: any): Promise<any> {
+    if (this._isInsideTransactionCall) {
+      return super.$transaction(args, options);
+    }
+
+    this._isInsideTransactionCall = true;
+    try {
+      return await this._extendedClient.$transaction(args, options);
+    } finally {
+      this._isInsideTransactionCall = false;
+    }
   }
 
   async onModuleInit(): Promise<void> {
