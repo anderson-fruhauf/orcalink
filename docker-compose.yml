@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: orcalink
       POSTGRES_PASSWORD: orcalink_pass
@@ -17,6 +18,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     healthcheck:
@@ -27,6 +30,7 @@ services:
 
   api:
     build: ./apps/api
+    restart: unless-stopped
     ports:
       - "3333:3333"
     environment:
@@ -38,13 +42,20 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333/api/health', (r) => { if (r.statusCode === 200 || r.statusCode === 404) process.exit(0); else process.exit(1); })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build: ./apps/web
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
