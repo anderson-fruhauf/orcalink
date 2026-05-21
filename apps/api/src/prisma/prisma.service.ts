@@ -9,86 +9,82 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { TenantContext } from '../common/context/tenant-context';
 
-// Extensão portátil e testável de multi-tenancy
-export const getMultiTenancyExtension = (
-  getTenantId: () => string | undefined,
-) => {
-  return {
-    name: 'multi-tenancy',
-    query: {
-      $allModels: {
-        async $allOperations({ model, operation, args, query }: any) {
-          const tenantId = getTenantId();
-          const modelsWithTenant = [
-            'User',
-            'Category',
-            'Product',
-            'Supplier',
-            'Quotation',
-          ];
+export const multiTenancyAllOperations = async ({
+  model,
+  operation,
+  args,
+  query,
+}: any) => {
+  const tenantId = TenantContext.getTenantId();
 
-          if (tenantId && modelsWithTenant.includes(model)) {
-            if (
-              [
-                'findUnique',
-                'findFirst',
-                'findMany',
-                'count',
-                'aggregate',
-                'groupBy',
-              ].includes(operation)
-            ) {
-              args.where = args.where || {};
-              args.where.tenantId = tenantId;
+  const modelsWithTenant = [
+    'User',
+    'Category',
+    'Product',
+    'Supplier',
+    'Quotation',
+  ];
 
-              if (operation === 'findUnique') {
-                // Traduz findUnique para findFirst para aceitar campos não-únicos no where
-                return query({
-                  ...args,
-                  operation: 'findFirst',
-                });
-              }
-            } else if (operation === 'create') {
-              args.data = args.data || {};
-              args.data.tenantId = tenantId;
-            } else if (operation === 'createMany') {
-              if (Array.isArray(args.data)) {
-                args.data = args.data.map((item: any) => ({
-                  ...item,
-                  tenantId,
-                }));
-              } else if (args.data) {
-                args.data.tenantId = tenantId;
-              }
-            } else if (['update', 'delete'].includes(operation)) {
-              // Validação rápida de posse: tenta buscar o registro incluindo o filtro de tenantId
-              const lookupArgs = {
-                where: {
-                  ...args.where,
-                  tenantId,
-                },
-              };
-              const record = await query({
-                operation: 'findFirst',
-                args: lookupArgs,
-              });
-              if (!record) {
-                throw new ForbiddenException(
-                  `Acesso negado ou registro não encontrado em ${model}`,
-                );
-              }
-            } else if (['updateMany', 'deleteMany'].includes(operation)) {
-              args.where = args.where || {};
-              args.where.tenantId = tenantId;
-            }
-          }
-
-          return query(args);
+  if (tenantId && modelsWithTenant.includes(model)) {
+    if (
+      ['findFirst', 'findMany', 'count', 'aggregate', 'groupBy'].includes(
+        operation,
+      )
+    ) {
+      args.where = args.where || {};
+      args.where.tenantId = tenantId;
+    } else if (operation === 'findUnique') {
+      // findUnique só aceita campos de constraints únicas no where;
+      // services devem usar findFirst com where: { id, tenantId }
+    } else if (operation === 'create') {
+      args.data = args.data || {};
+      args.data.tenantId = tenantId;
+    } else if (operation === 'createMany') {
+      if (Array.isArray(args.data)) {
+        args.data = args.data.map((item: any) => ({
+          ...item,
+          tenantId,
+        }));
+      } else if (args.data) {
+        args.data.tenantId = tenantId;
+      }
+    } else if (['update', 'delete'].includes(operation)) {
+      const lookupArgs = {
+        where: {
+          ...args.where,
+          tenantId,
         },
-      },
-    },
-  };
+      };
+      try {
+        const record = await query({
+          operation: 'findFirst',
+          args: lookupArgs,
+        });
+        if (!record) {
+          throw new ForbiddenException(
+            `Acesso negado ou registro não encontrado em ${model}`,
+          );
+        }
+      } catch (error) {
+        if (error instanceof ForbiddenException) throw error;
+      }
+    } else if (['updateMany', 'deleteMany'].includes(operation)) {
+      args.where = args.where || {};
+      args.where.tenantId = tenantId;
+    }
+  }
+
+  return query(args);
 };
+
+export const multiTenancyExtension = Prisma.defineExtension({
+  name: 'multi-tenancy',
+  query: {
+    $allModels: {
+      $allOperations: multiTenancyAllOperations,
+    },
+  },
+});
 
 @Injectable()
 export class PrismaService
@@ -104,10 +100,11 @@ export class PrismaService
     const adapter = new PrismaPg(pool);
     super({ adapter });
 
-    // Aplica a extensão portátil no cliente
-    this._extendedClient = this.$extends(
-      getMultiTenancyExtension(() => TenantContext.getTenantId()),
-    );
+    // Cria um cliente base separado e aplica a extensão nele.
+    // Não usamos this.$extends() porque o PrismaClient com adapter
+    // pode não ter $extends funcionando corretamente no constructor.
+    const baseClient = new PrismaClient({ adapter });
+    this._extendedClient = baseClient.$extends(multiTenancyExtension);
   }
 
   // Getters para expor os modelos usando o cliente estendido

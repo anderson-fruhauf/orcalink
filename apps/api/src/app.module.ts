@@ -7,6 +7,7 @@ import { FirebaseModule } from './firebase/firebase.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ProductModule } from './modules/product/product.module.js';
 import { SupplierModule } from './modules/supplier/supplier.module.js';
+import { CategoryModule } from './modules/category/category.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 
@@ -17,6 +18,7 @@ import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
     AuthModule,
     ProductModule,
     SupplierModule,
+    CategoryModule,
     DashboardModule,
   ],
   controllers: [AppController],

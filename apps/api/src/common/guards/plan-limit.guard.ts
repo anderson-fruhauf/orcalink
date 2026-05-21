@@ -13,6 +13,7 @@ export type PlanResource =
   | 'activeQuotations'
   | 'suppliers'
   | 'products'
+  | 'categories'
   | 'emails';
 
 export const PLAN_LIMITS = {
@@ -20,12 +21,14 @@ export const PLAN_LIMITS = {
     activeQuotations: 5,
     suppliers: 10,
     products: 50,
+    categories: 20,
     emails: 20,
   },
   PRO: {
     activeQuotations: Infinity,
     suppliers: Infinity,
     products: Infinity,
+    categories: Infinity,
     emails: Infinity,
   },
 };
@@ -40,6 +43,8 @@ function mapResource(resource: string): PlanResource {
       return 'suppliers';
     case 'products':
       return 'products';
+    case 'categories':
+      return 'categories';
     case 'emails':
       return 'emails';
     default:
@@ -109,6 +114,11 @@ export class PlanLimitGuard implements CanActivate {
         break;
       case 'products':
         current = await this.prisma.product.count({
+          where: { tenantId },
+        });
+        break;
+      case 'categories':
+        current = await this.prisma.category.count({
           where: { tenantId },
         });
         break;

@@ -1,22 +1,18 @@
-import { getMultiTenancyExtension } from './prisma.service.js';
 import { ForbiddenException } from '@nestjs/common';
+import { multiTenancyAllOperations } from './prisma.service.js';
+import { TenantContext } from '../common/context/tenant-context.js';
 
-describe('getMultiTenancyExtension', () => {
-  let tenantId: string | undefined;
-  const mockGetTenantId = () => tenantId;
-  const extension = getMultiTenancyExtension(mockGetTenantId);
-  const $allOperations = extension.query.$allModels.$allOperations;
-
+describe('multiTenancyExtension', () => {
   beforeEach(() => {
-    tenantId = undefined;
+    jest.restoreAllMocks();
   });
 
   it('should inject tenantId into findMany queries when tenant context is active', async () => {
-    tenantId = 'tenant-123';
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
     const mockQuery = jest.fn().mockResolvedValue([]);
     const args = { where: { name: 'Electronics' } };
 
-    await $allOperations({
+    await multiTenancyAllOperations({
       model: 'Category',
       operation: 'findMany',
       args,
@@ -32,11 +28,11 @@ describe('getMultiTenancyExtension', () => {
   });
 
   it('should not inject tenantId when tenant context is inactive', async () => {
-    tenantId = undefined;
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue(undefined);
     const mockQuery = jest.fn().mockResolvedValue([]);
     const args = { where: { name: 'Electronics' } };
 
-    await $allOperations({
+    await multiTenancyAllOperations({
       model: 'Category',
       operation: 'findMany',
       args,
@@ -44,18 +40,16 @@ describe('getMultiTenancyExtension', () => {
     });
 
     expect(mockQuery).toHaveBeenCalledWith({
-      where: {
-        name: 'Electronics',
-      },
+      where: { name: 'Electronics' },
     });
   });
 
-  it('should translate findUnique to findFirst and inject tenantId', async () => {
-    tenantId = 'tenant-123';
+  it('should NOT modify findUnique (only accepts unique fields)', async () => {
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
     const mockQuery = jest.fn().mockResolvedValue(null);
     const args = { where: { id: 'category-id' } };
 
-    await $allOperations({
+    await multiTenancyAllOperations({
       model: 'Category',
       operation: 'findUnique',
       args,
@@ -63,20 +57,16 @@ describe('getMultiTenancyExtension', () => {
     });
 
     expect(mockQuery).toHaveBeenCalledWith({
-      where: {
-        id: 'category-id',
-        tenantId: 'tenant-123',
-      },
-      operation: 'findFirst',
+      where: { id: 'category-id' },
     });
   });
 
   it('should inject tenantId into create queries', async () => {
-    tenantId = 'tenant-123';
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
     const mockQuery = jest.fn().mockResolvedValue({});
     const args = { data: { name: 'Electronics' } };
 
-    await $allOperations({
+    await multiTenancyAllOperations({
       model: 'Category',
       operation: 'create',
       args,
@@ -92,9 +82,8 @@ describe('getMultiTenancyExtension', () => {
   });
 
   it('should allow update if record belongs to tenant', async () => {
-    tenantId = 'tenant-123';
-    // O mockQuery deve retornar um registro fictício no lookup de findFirst para simular que pertence ao tenant
-    const mockQuery = jest.fn().mockImplementation((options) => {
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
+    const mockQuery = jest.fn().mockImplementation((options: any) => {
       if (options.operation === 'findFirst') {
         return Promise.resolve({ id: 'category-id', tenantId: 'tenant-123' });
       }
@@ -106,14 +95,13 @@ describe('getMultiTenancyExtension', () => {
       data: { name: 'Updated' },
     };
 
-    const result = await $allOperations({
+    const result = await multiTenancyAllOperations({
       model: 'Category',
       operation: 'update',
       args,
       query: mockQuery,
     });
 
-    // O primeiro call é a validação com findFirst, o segundo call é a atualização de fato
     expect(mockQuery).toHaveBeenNthCalledWith(1, {
       operation: 'findFirst',
       args: {
@@ -128,8 +116,7 @@ describe('getMultiTenancyExtension', () => {
   });
 
   it('should throw ForbiddenException on update if record does not belong to tenant', async () => {
-    tenantId = 'tenant-123';
-    // O mockQuery retorna null no findFirst para simular que não pertence ao tenant
+    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
     const mockQuery = jest.fn().mockResolvedValue(null);
 
     const args = {
@@ -138,7 +125,7 @@ describe('getMultiTenancyExtension', () => {
     };
 
     await expect(
-      $allOperations({
+      multiTenancyAllOperations({
         model: 'Category',
         operation: 'update',
         args,
