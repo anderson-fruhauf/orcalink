@@ -25,17 +25,21 @@ describe('TenantInterceptor', () => {
 
     const mockHandler = {
       handle: () => {
-        // Verifica que durante a execução do handler, o tenantId está no contexto
-        expect(TenantContext.getTenantId()).toBe('mock-tenant-uuid');
+        // O contexto deve estar disponível durante a execução do Observable (subscrição),
+        // não apenas durante a criação do handle()
         return of('test');
       },
     } as unknown as CallHandler;
 
     interceptor.intercept(mockContext, mockHandler).subscribe({
       next: (val) => {
+        // A verificação do contexto ocorre no callback de subscrição,
+        // que é onde o handler real do NestJS executa
+        expect(TenantContext.getTenantId()).toBe('mock-tenant-uuid');
         expect(val).toBe('test');
-        done();
       },
+      error: (err) => done(err),
+      complete: () => done(),
     });
   });
 
@@ -50,16 +54,17 @@ describe('TenantInterceptor', () => {
 
     const mockHandler = {
       handle: () => {
-        expect(TenantContext.getTenantId()).toBeUndefined();
         return of('no-tenant');
       },
     } as unknown as CallHandler;
 
     interceptor.intercept(mockContext, mockHandler).subscribe({
       next: (val) => {
+        expect(TenantContext.getTenantId()).toBeUndefined();
         expect(val).toBe('no-tenant');
-        done();
       },
+      error: (err) => done(err),
+      complete: () => done(),
     });
   });
 });

@@ -12,16 +12,20 @@ export class DashboardService {
     const [activeQuotations, totalSuppliers, totalProducts, pendingProposals] =
       await Promise.all([
         this.prisma.quotation.count({
-          where: { status: 'OPEN' },
+          where: { status: 'OPEN', tenantId },
         }),
-        this.prisma.supplier.count(),
-        this.prisma.product.count(),
+        this.prisma.supplier.count({
+          where: { tenantId },
+        }),
+        this.prisma.product.count({
+          where: { tenantId },
+        }),
         this.prisma.quotationSupplier.count({
           where: {
             responseStatus: 'PENDING',
             quotation: {
               status: 'OPEN',
-              tenantId: tenantId,
+              tenantId,
             },
           },
         }),
