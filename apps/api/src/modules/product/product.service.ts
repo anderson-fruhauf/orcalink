@@ -30,6 +30,7 @@ export class ProductService {
         unit: dto.unit,
         internalCode: dto.internalCode,
         categoryId: dto.categoryId,
+        tenantId: '',
       },
     });
   }

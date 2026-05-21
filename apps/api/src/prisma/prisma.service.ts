@@ -111,18 +111,42 @@ export class PrismaService
   }
 
   // Getters para expor os modelos usando o cliente estendido
-  get user(): Prisma.UserDelegate { return this._extendedClient.user; }
-  get category(): Prisma.CategoryDelegate { return this._extendedClient.category; }
-  get product(): Prisma.ProductDelegate { return this._extendedClient.product; }
-  get supplier(): Prisma.SupplierDelegate { return this._extendedClient.supplier; }
-  get quotation(): Prisma.QuotationDelegate { return this._extendedClient.quotation; }
-  get tenant(): Prisma.TenantDelegate { return this._extendedClient.tenant; }
-  get supplierCategory(): Prisma.SupplierCategoryDelegate { return this._extendedClient.supplierCategory; }
-  get quotationItem(): Prisma.QuotationItemDelegate { return this._extendedClient.quotationItem; }
-  get quotationSupplier(): Prisma.QuotationSupplierDelegate { return this._extendedClient.quotationSupplier; }
-  get magicLink(): Prisma.MagicLinkDelegate { return this._extendedClient.magicLink; }
-  get proposal(): Prisma.ProposalDelegate { return this._extendedClient.proposal; }
-  get proposalItem(): Prisma.ProposalItemDelegate { return this._extendedClient.proposalItem; }
+  get user(): Prisma.UserDelegate {
+    return this._extendedClient.user;
+  }
+  get category(): Prisma.CategoryDelegate {
+    return this._extendedClient.category;
+  }
+  get product(): Prisma.ProductDelegate {
+    return this._extendedClient.product;
+  }
+  get supplier(): Prisma.SupplierDelegate {
+    return this._extendedClient.supplier;
+  }
+  get quotation(): Prisma.QuotationDelegate {
+    return this._extendedClient.quotation;
+  }
+  get tenant(): Prisma.TenantDelegate {
+    return this._extendedClient.tenant;
+  }
+  get supplierCategory(): Prisma.SupplierCategoryDelegate {
+    return this._extendedClient.supplierCategory;
+  }
+  get quotationItem(): Prisma.QuotationItemDelegate {
+    return this._extendedClient.quotationItem;
+  }
+  get quotationSupplier(): Prisma.QuotationSupplierDelegate {
+    return this._extendedClient.quotationSupplier;
+  }
+  get magicLink(): Prisma.MagicLinkDelegate {
+    return this._extendedClient.magicLink;
+  }
+  get proposal(): Prisma.ProposalDelegate {
+    return this._extendedClient.proposal;
+  }
+  get proposalItem(): Prisma.ProposalItemDelegate {
+    return this._extendedClient.proposalItem;
+  }
 
   private _isInsideTransactionCall = false;
 
