@@ -53,7 +53,9 @@ describe('FirebaseAuthGuard', () => {
 
   it('should throw UnauthorizedException if Firebase verification fails', async () => {
     const context = createMockExecutionContext('Bearer invalid-token');
-    firebaseAdminService.verifyIdToken.mockRejectedValue(new Error('Firebase error'));
+    firebaseAdminService.verifyIdToken.mockRejectedValue(
+      new Error('Firebase error'),
+    );
 
     await expect(guard.canActivate(context)).rejects.toThrow(
       new UnauthorizedException('Firebase error'),
@@ -62,7 +64,10 @@ describe('FirebaseAuthGuard', () => {
 
   it('should throw UnauthorizedException if user is not in local database', async () => {
     const context = createMockExecutionContext('Bearer valid-token');
-    firebaseAdminService.verifyIdToken.mockResolvedValue({ uid: 'firebase-uid', email: 'test@orcalink.com' } as any);
+    firebaseAdminService.verifyIdToken.mockResolvedValue({
+      uid: 'firebase-uid',
+      email: 'test@orcalink.com',
+    } as any);
     prismaService.user.findUnique.mockResolvedValue(null);
 
     await expect(guard.canActivate(context)).rejects.toThrow(
@@ -78,7 +83,10 @@ describe('FirebaseAuthGuard', () => {
       email: 'test@orcalink.com',
       firebaseUid: 'firebase-uid',
     };
-    firebaseAdminService.verifyIdToken.mockResolvedValue({ uid: 'firebase-uid', email: 'test@orcalink.com' } as any);
+    firebaseAdminService.verifyIdToken.mockResolvedValue({
+      uid: 'firebase-uid',
+      email: 'test@orcalink.com',
+    } as any);
     prismaService.user.findUnique.mockResolvedValue(mockUser as any);
 
     const result = await guard.canActivate(context);
@@ -93,7 +101,9 @@ describe('FirebaseAuthGuard', () => {
     });
   });
 
-  function createMockExecutionContext(authHeader: string | null): ExecutionContext {
+  function createMockExecutionContext(
+    authHeader: string | null,
+  ): ExecutionContext {
     const request = {
       headers: authHeader ? { authorization: authHeader } : {},
       user: null,

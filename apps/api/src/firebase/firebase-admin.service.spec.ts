@@ -66,7 +66,9 @@ describe('FirebaseAdminService', () => {
     it('should initialize firebase-admin using certificate if service account path exists', () => {
       process.env.FIREBASE_SERVICE_ACCOUNT_PATH = './credentials.json';
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue('{"project_id": "test-project"}');
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        '{"project_id": "test-project"}',
+      );
 
       service.onModuleInit();
 
@@ -106,7 +108,10 @@ describe('FirebaseAdminService', () => {
 
   describe('verifyIdToken', () => {
     it('should call verifyIdToken on auth object with correct token', async () => {
-      mockVerifyIdToken.mockResolvedValue({ uid: 'user123', email: 'user@test.com' });
+      mockVerifyIdToken.mockResolvedValue({
+        uid: 'user123',
+        email: 'user@test.com',
+      });
       service.onModuleInit();
 
       const result = await service.verifyIdToken('test-token');

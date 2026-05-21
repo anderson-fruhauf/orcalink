@@ -143,7 +143,7 @@ describe('getMultiTenancyExtension', () => {
         operation: 'update',
         args,
         query: mockQuery,
-      })
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 });

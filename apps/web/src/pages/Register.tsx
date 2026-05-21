@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth.js';
 import logoIcon from '../assets/logo-icon.svg';
@@ -24,7 +24,7 @@ const registerSchema = z
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const Register: React.FC = () => {
-  const { signUp, user, loading, prefilledEmail, setPrefilledEmail } = useAuth();
+  const { signUp, signOut, user, loading, prefilledEmail, setPrefilledEmail } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -47,6 +47,16 @@ export const Register: React.FC = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const handleGoToLogin = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('Error signing out during redirect:', err);
+    }
+    navigate('/login');
+  };
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -171,9 +181,9 @@ export const Register: React.FC = () => {
 
         <div className="auth-footer">
           Já possui uma conta?{' '}
-          <Link to="/login" className="auth-footer-link">
+          <a href="#" onClick={handleGoToLogin} className="auth-footer-link">
             Fazer login
-          </Link>
+          </a>
         </div>
       </div>
     </div>

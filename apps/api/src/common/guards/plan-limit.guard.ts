@@ -9,7 +9,11 @@ import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PLAN_LIMIT_KEY } from '../decorators/check-plan-limit.decorator.js';
 
-export type PlanResource = 'activeQuotations' | 'suppliers' | 'products' | 'emails';
+export type PlanResource =
+  | 'activeQuotations'
+  | 'suppliers'
+  | 'products'
+  | 'emails';
 
 export const PLAN_LIMITS = {
   FREE: {
@@ -130,7 +134,8 @@ export class PlanLimitGuard implements CanActivate {
     if (current >= limit) {
       throw new ForbiddenException({
         statusCode: 403,
-        message: 'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
+        message:
+          'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
         error: 'Forbidden',
         limit,
         current,
