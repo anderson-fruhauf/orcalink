@@ -83,7 +83,7 @@ export class PlanLimitGuard implements CanActivate {
       throw new UnauthorizedException('Tenant not found');
     }
 
-    const plan = tenant.plan as 'FREE' | 'PRO';
+    const plan = tenant.plan;
     const mappedResource = mapResource(resourceMetadata);
     const limit = PLAN_LIMITS[plan]?.[mappedResource] ?? Infinity;
 

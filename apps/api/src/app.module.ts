@@ -6,10 +6,17 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ProductModule } from './modules/product/product.module.js';
+import { SupplierModule } from './modules/supplier/supplier.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, AuthModule, ProductModule],
+  imports: [
+    PrismaModule,
+    FirebaseModule,
+    AuthModule,
+    ProductModule,
+    SupplierModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

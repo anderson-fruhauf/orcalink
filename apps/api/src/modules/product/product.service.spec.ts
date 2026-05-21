@@ -94,6 +94,7 @@ describe('ProductService', () => {
           unit: createDto.unit,
           internalCode: createDto.internalCode,
           categoryId: createDto.categoryId,
+          tenantId: '',
         },
       });
       expect(result).toEqual(mockCreatedProduct);
