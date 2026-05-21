@@ -1,11 +1,19 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
   // Cache em memória compartilhado entre instâncias (estático)
-  private static readonly userCache = new Map<string, { user: any; expiresAt: number }>();
+  private static readonly userCache = new Map<
+    string,
+    { user: any; expiresAt: number }
+  >();
   private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
   constructor(
@@ -52,7 +60,7 @@ export class FirebaseAuthGuard implements CanActivate {
 
     try {
       const decodedToken = await this.firebaseAdmin.verifyIdToken(token);
-      
+
       // Tenta obter do cache primeiro
       let user = FirebaseAuthGuard.getCachedUser(decodedToken.uid);
 
@@ -68,7 +76,9 @@ export class FirebaseAuthGuard implements CanActivate {
       }
 
       if (!user) {
-        throw new UnauthorizedException('User not registered in local database');
+        throw new UnauthorizedException(
+          'User not registered in local database',
+        );
       }
 
       request.user = {
@@ -83,7 +93,9 @@ export class FirebaseAuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException(error instanceof Error ? error.message : 'Invalid Firebase token');
+      throw new UnauthorizedException(
+        error instanceof Error ? error.message : 'Invalid Firebase token',
+      );
     }
   }
 }

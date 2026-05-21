@@ -13,7 +13,9 @@ export class FirebaseAdminService implements OnModuleInit {
 
       if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
         const resolvedPath = path.resolve(serviceAccountPath);
-        const serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+        const serviceAccount = JSON.parse(
+          fs.readFileSync(resolvedPath, 'utf8'),
+        );
 
         this.firebaseApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),

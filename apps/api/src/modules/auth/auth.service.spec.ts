@@ -39,7 +39,9 @@ describe('AuthService', () => {
     prismaService = module.get(PrismaService);
 
     // Mock transaction to immediately execute the callback with mockPrismaService
-    prismaService.$transaction.mockImplementation((cb: any) => cb(prismaService));
+    prismaService.$transaction.mockImplementation((cb: any) =>
+      cb(prismaService),
+    );
   });
 
   it('should be defined', () => {
@@ -63,7 +65,9 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if Firebase verification fails', async () => {
-      firebaseAdminService.verifyIdToken.mockRejectedValue(new Error('Auth error'));
+      firebaseAdminService.verifyIdToken.mockRejectedValue(
+        new Error('Auth error'),
+      );
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
         new UnauthorizedException('Auth error'),
@@ -71,7 +75,10 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if user already exists', async () => {
-      firebaseAdminService.verifyIdToken.mockResolvedValue({ uid: 'firebase-uid', email: 'test@orcalink.com' } as any);
+      firebaseAdminService.verifyIdToken.mockResolvedValue({
+        uid: 'firebase-uid',
+        email: 'test@orcalink.com',
+      } as any);
       prismaService.user.findFirst.mockResolvedValue({ id: 'existing-id' });
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
@@ -80,11 +87,24 @@ describe('AuthService', () => {
     });
 
     it('should create a Tenant (FREE) and User in transaction', async () => {
-      firebaseAdminService.verifyIdToken.mockResolvedValue({ uid: 'firebase-uid', email: 'test@orcalink.com' } as any);
+      firebaseAdminService.verifyIdToken.mockResolvedValue({
+        uid: 'firebase-uid',
+        email: 'test@orcalink.com',
+      } as any);
       prismaService.user.findFirst.mockResolvedValue(null);
 
-      const createdTenant = { id: 'tenant-uuid-123', name: 'Orca', plan: 'FREE' };
-      const createdUser = { id: 'user-uuid-123', tenantId: 'tenant-uuid-123', email: 'test@orcalink.com', firebaseUid: 'firebase-uid', name: 'Anderson' };
+      const createdTenant = {
+        id: 'tenant-uuid-123',
+        name: 'Orca',
+        plan: 'FREE',
+      };
+      const createdUser = {
+        id: 'user-uuid-123',
+        tenantId: 'tenant-uuid-123',
+        email: 'test@orcalink.com',
+        firebaseUid: 'firebase-uid',
+        name: 'Anderson',
+      };
 
       prismaService.tenant.create.mockResolvedValue(createdTenant);
       prismaService.user.create.mockResolvedValue(createdUser);

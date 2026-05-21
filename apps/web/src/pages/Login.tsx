@@ -28,16 +28,10 @@ export const Login: React.FC = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      if (user.backendUser && user.tenant) {
-        navigate('/dashboard');
-      } else {
-        // Logado no Firebase mas sem registro local
-        setPrefilledEmail(user.firebaseUser.email || '');
-        navigate('/register');
-      }
+    if (user && user.backendUser && user.tenant) {
+      navigate('/dashboard');
     }
-  }, [user, navigate, setPrefilledEmail]);
+  }, [user, navigate]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {

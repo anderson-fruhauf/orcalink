@@ -1,4 +1,8 @@
-import { ExecutionContext, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { PlanLimitGuard } from './plan-limit.guard.js';
@@ -41,7 +45,7 @@ describe('PlanLimitGuard', () => {
     }).compile();
 
     guard = module.get<PlanLimitGuard>(PlanLimitGuard);
-    reflector = module.get(Reflector) as any;
+    reflector = module.get(Reflector);
     prismaService = module.get(PrismaService);
 
     jest.clearAllMocks();
@@ -95,7 +99,10 @@ describe('PlanLimitGuard', () => {
   it('should bypass all checks and return true for PRO plan', async () => {
     mockReflector.get.mockReturnValue('suppliers');
     const context = createMockExecutionContext({ tenantId: 'tenant-1' });
-    mockPrismaService.tenant.findUnique.mockResolvedValue({ id: 'tenant-1', plan: 'PRO' });
+    mockPrismaService.tenant.findUnique.mockResolvedValue({
+      id: 'tenant-1',
+      plan: 'PRO',
+    });
 
     const result = await guard.canActivate(context);
     expect(result).toBe(true);
@@ -103,7 +110,10 @@ describe('PlanLimitGuard', () => {
 
   describe('FREE Plan Limit Enforcement', () => {
     beforeEach(() => {
-      mockPrismaService.tenant.findUnique.mockResolvedValue({ id: 'tenant-1', plan: 'FREE' });
+      mockPrismaService.tenant.findUnique.mockResolvedValue({
+        id: 'tenant-1',
+        plan: 'FREE',
+      });
     });
 
     it('should allow creation of suppliers if count is within limit', async () => {
@@ -123,14 +133,17 @@ describe('PlanLimitGuard', () => {
       const context = createMockExecutionContext({ tenantId: 'tenant-1' });
       mockPrismaService.supplier.count.mockResolvedValue(10); // limit: 10
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
       try {
         await guard.canActivate(context);
       } catch (err: any) {
         expect(err.getStatus()).toBe(403);
         expect(err.getResponse()).toEqual({
           statusCode: 403,
-          message: 'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
+          message:
+            'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
           error: 'Forbidden',
           limit: 10,
           current: 10,
@@ -157,7 +170,9 @@ describe('PlanLimitGuard', () => {
       const context = createMockExecutionContext({ tenantId: 'tenant-1' });
       mockPrismaService.product.count.mockResolvedValue(50); // limit: 50
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should allow creation of quotations if count is within limit', async () => {
@@ -180,7 +195,9 @@ describe('PlanLimitGuard', () => {
       const context = createMockExecutionContext({ tenantId: 'tenant-1' });
       mockPrismaService.quotation.count.mockResolvedValue(5); // limit: 5
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should allow sending emails if count is within limit', async () => {
@@ -207,7 +224,9 @@ describe('PlanLimitGuard', () => {
       const context = createMockExecutionContext({ tenantId: 'tenant-1' });
       mockPrismaService.quotationSupplier.count.mockResolvedValue(20); // limit: 20
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { FirebaseAdminService } from '../../firebase/firebase-admin.service.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -24,7 +28,9 @@ export class AuthService {
     try {
       decodedToken = await this.firebaseAdmin.verifyIdToken(token);
     } catch (error) {
-      throw new UnauthorizedException(error instanceof Error ? error.message : 'Invalid Firebase token');
+      throw new UnauthorizedException(
+        error instanceof Error ? error.message : 'Invalid Firebase token',
+      );
     }
 
     const { uid: firebaseUid, email } = decodedToken;
@@ -36,10 +42,7 @@ export class AuthService {
     // Verificar se o usuário já existe no banco local por firebaseUid ou email
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { firebaseUid },
-          { email },
-        ],
+        OR: [{ firebaseUid }, { email }],
       },
     });
 
