@@ -8,6 +8,7 @@ import { Register } from './pages/Register.js';
 import { ForgotPassword } from './pages/ForgotPassword.js';
 import { DashboardLayout } from './layouts/DashboardLayout.js';
 import { DashboardHome } from './pages/DashboardHome.js';
+import { Categories } from './pages/Categories.js';
 
 // Route wrapper for authenticated users
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -129,7 +130,7 @@ function App() {
             <Route path="quotations" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Cotações</h2><p style={{ color: 'var(--text-muted)' }}>Gerencie suas cotações e envie propostas para fornecedores.</p></div>} />
             <Route path="products" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Produtos</h2><p style={{ color: 'var(--text-muted)' }}>Cadastre e gerencie a lista de produtos da empresa.</p></div>} />
             <Route path="suppliers" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Fornecedores</h2><p style={{ color: 'var(--text-muted)' }}>Cadastre e gerencie a base de fornecedores parceiros.</p></div>} />
-            <Route path="categories" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Categorias</h2><p style={{ color: 'var(--text-muted)' }}>Gerencie as categorias de produtos e fornecedores.</p></div>} />
+            <Route path="categories" element={<Categories />} />
             <Route path="settings" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Configurações</h2><p style={{ color: 'var(--text-muted)' }}>Ajuste as preferências e configurações de conta.</p></div>} />
           </Route>
 
