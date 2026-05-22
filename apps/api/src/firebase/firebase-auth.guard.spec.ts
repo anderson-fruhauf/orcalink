@@ -17,9 +17,15 @@ describe('FirebaseAuthGuard', () => {
     user: {
       findUnique: jest.fn(),
     },
+    cleanUser: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
+    // Clear static cache in FirebaseAuthGuard to prevent leaks between tests
+    FirebaseAuthGuard['userCache'].clear();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FirebaseAuthGuard,
@@ -68,7 +74,7 @@ describe('FirebaseAuthGuard', () => {
       uid: 'firebase-uid',
       email: 'test@orcalink.com',
     } as any);
-    prismaService.user.findUnique.mockResolvedValue(null);
+    prismaService.cleanUser.findUnique.mockResolvedValue(null);
 
     await expect(guard.canActivate(context)).rejects.toThrow(
       new UnauthorizedException('User not registered in local database'),
@@ -87,7 +93,7 @@ describe('FirebaseAuthGuard', () => {
       uid: 'firebase-uid',
       email: 'test@orcalink.com',
     } as any);
-    prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+    prismaService.cleanUser.findUnique.mockResolvedValue(mockUser as any);
 
     const result = await guard.canActivate(context);
 

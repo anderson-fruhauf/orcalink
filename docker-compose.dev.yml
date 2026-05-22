@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: orcalink_pass
       POSTGRES_DB: orcalink
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:

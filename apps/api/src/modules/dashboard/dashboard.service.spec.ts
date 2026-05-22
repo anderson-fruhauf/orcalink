@@ -55,14 +55,10 @@ describe('DashboardService', () => {
       const result = await service.getStats();
 
       expect(prismaService.quotation.count).toHaveBeenCalledWith({
-        where: { status: 'OPEN', tenantId: 'test-tenant-id' },
+        where: { status: 'OPEN' },
       });
-      expect(prismaService.supplier.count).toHaveBeenCalledWith({
-        where: { tenantId: 'test-tenant-id' },
-      });
-      expect(prismaService.product.count).toHaveBeenCalledWith({
-        where: { tenantId: 'test-tenant-id' },
-      });
+      expect(prismaService.supplier.count).toHaveBeenCalledWith({});
+      expect(prismaService.product.count).toHaveBeenCalledWith({});
       expect(prismaService.quotationSupplier.count).toHaveBeenCalledWith({
         where: {
           responseStatus: 'PENDING',

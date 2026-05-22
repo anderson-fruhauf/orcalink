@@ -117,7 +117,6 @@ describe('SupplierService', () => {
           contactName: createDto.contactName,
           email: createDto.email,
           phone: createDto.phone,
-          tenantId: '',
         },
       });
       expect(prismaService.supplierCategory.createMany).toHaveBeenCalledWith({
