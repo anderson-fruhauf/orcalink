@@ -1,14 +1,33 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient, Prisma } from '../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { TenantContext } from '../common/context/tenant-context';
+import { TenantContext } from '../common/context/tenant-context.js';
 
+/**
+ * Lista de models que possuem coluna `tenantId`.
+ * Toda query nesses models terá tenantId injetado automaticamente
+ * quando houver um TenantContext ativo.
+ */
+const MODELS_WITH_TENANT = [
+  'User',
+  'Category',
+  'Product',
+  'Supplier',
+  'Quotation',
+];
+
+/**
+ * Middleware de multi-tenancy que injeta `tenantId` automaticamente
+ * em todas as operações dos models listados em MODELS_WITH_TENANT.
+ *
+ * - Operações de leitura (findFirst, findMany, findUnique, count, aggregate, groupBy):
+ *   → Injeta `tenantId` no `where`
+ * - create: → Injeta `tenantId` no `data`
+ * - createMany: → Injeta `tenantId` em cada item do `data`
+ * - update, delete: → Injeta `tenantId` no `where` (query engine filtra pela coluna)
+ * - updateMany, deleteMany: → Injeta `tenantId` no `where`
+ */
 export const multiTenancyAllOperations = async ({
   model,
   operation,
@@ -17,26 +36,8 @@ export const multiTenancyAllOperations = async ({
 }: any) => {
   const tenantId = TenantContext.getTenantId();
 
-  const modelsWithTenant = [
-    'User',
-    'Category',
-    'Product',
-    'Supplier',
-    'Quotation',
-  ];
-
-  if (tenantId && modelsWithTenant.includes(model)) {
-    if (
-      ['findFirst', 'findMany', 'count', 'aggregate', 'groupBy'].includes(
-        operation,
-      )
-    ) {
-      args.where = args.where || {};
-      args.where.tenantId = tenantId;
-    } else if (operation === 'findUnique') {
-      // findUnique só aceita campos de constraints únicas no where;
-      // services devem usar findFirst com where: { id, tenantId }
-    } else if (operation === 'create') {
+  if (tenantId && MODELS_WITH_TENANT.includes(model)) {
+    if (operation === 'create') {
       args.data = args.data || {};
       args.data.tenantId = tenantId;
     } else if (operation === 'createMany') {
@@ -48,27 +49,11 @@ export const multiTenancyAllOperations = async ({
       } else if (args.data) {
         args.data.tenantId = tenantId;
       }
-    } else if (['update', 'delete'].includes(operation)) {
-      const lookupArgs = {
-        where: {
-          ...args.where,
-          tenantId,
-        },
-      };
-      try {
-        const record = await query({
-          operation: 'findFirst',
-          args: lookupArgs,
-        });
-        if (!record) {
-          throw new ForbiddenException(
-            `Acesso negado ou registro não encontrado em ${model}`,
-          );
-        }
-      } catch (error) {
-        if (error instanceof ForbiddenException) throw error;
-      }
-    } else if (['updateMany', 'deleteMany'].includes(operation)) {
+    } else {
+      // Todas as operações de leitura, update, delete, updateMany, deleteMany:
+      // injeta tenantId no where.
+      // Para findUnique/update/delete, o Prisma 5+ aceita campos adicionais
+      // no where além dos campos únicos (extended where).
       args.where = args.where || {};
       args.where.tenantId = tenantId;
     }
@@ -87,84 +72,73 @@ export const multiTenancyExtension = Prisma.defineExtension({
 });
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
-  private _extendedClient: any;
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  private readonly _baseClient: PrismaClient;
+  private readonly _extendedClient: any;
 
   constructor() {
     const pool = new pg.Pool({
       connectionString: process.env['DATABASE_URL']!,
     });
     const adapter = new PrismaPg(pool);
-    super({ adapter });
 
-    // Cria um cliente base separado e aplica a extensão nele.
-    // Não usamos this.$extends() porque o PrismaClient com adapter
-    // pode não ter $extends funcionando corretamente no constructor.
-    const baseClient = new PrismaClient({ adapter });
-    this._extendedClient = baseClient.$extends(multiTenancyExtension);
+    // Um único PrismaClient com a extensão de multi-tenancy aplicada.
+    this._baseClient = new PrismaClient({ adapter });
+    this._extendedClient = this._baseClient.$extends(multiTenancyExtension);
   }
 
-  // Getters para expor os modelos usando o cliente estendido
-  get user(): Prisma.UserDelegate {
+  // ─── Model Delegates (via extended client) ───────────────────────
+  get user() {
     return this._extendedClient.user;
   }
-  get category(): Prisma.CategoryDelegate {
+  get cleanUser() {
+    return this._baseClient.user;
+  }
+  get category() {
     return this._extendedClient.category;
   }
-  get product(): Prisma.ProductDelegate {
+  get product() {
     return this._extendedClient.product;
   }
-  get supplier(): Prisma.SupplierDelegate {
+  get supplier() {
     return this._extendedClient.supplier;
   }
-  get quotation(): Prisma.QuotationDelegate {
+  get quotation() {
     return this._extendedClient.quotation;
   }
-  get tenant(): Prisma.TenantDelegate {
+  get tenant() {
     return this._extendedClient.tenant;
   }
-  get supplierCategory(): Prisma.SupplierCategoryDelegate {
+  get supplierCategory() {
     return this._extendedClient.supplierCategory;
   }
-  get quotationItem(): Prisma.QuotationItemDelegate {
+  get quotationItem() {
     return this._extendedClient.quotationItem;
   }
-  get quotationSupplier(): Prisma.QuotationSupplierDelegate {
+  get quotationSupplier() {
     return this._extendedClient.quotationSupplier;
   }
-  get magicLink(): Prisma.MagicLinkDelegate {
+  get magicLink() {
     return this._extendedClient.magicLink;
   }
-  get proposal(): Prisma.ProposalDelegate {
+  get proposal() {
     return this._extendedClient.proposal;
   }
-  get proposalItem(): Prisma.ProposalItemDelegate {
+  get proposalItem() {
     return this._extendedClient.proposalItem;
   }
 
-  private _isInsideTransactionCall = false;
-
-  override async $transaction(args: any, options?: any): Promise<any> {
-    if (this._isInsideTransactionCall) {
-      return super.$transaction(args, options);
-    }
-
-    this._isInsideTransactionCall = true;
-    try {
-      return await this._extendedClient.$transaction(args, options);
-    } finally {
-      this._isInsideTransactionCall = false;
-    }
+  // ─── $transaction delega para o extended client ──────────────────
+  async $transaction(args: any, options?: any): Promise<any> {
+    return this._extendedClient.$transaction(args, options);
   }
 
+  // ─── Lifecycle ───────────────────────────────────────────────────
   async onModuleInit(): Promise<void> {
-    await this.$connect();
+    await this._baseClient.$connect();
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.$disconnect();
+    await this._baseClient.$disconnect();
   }
 }

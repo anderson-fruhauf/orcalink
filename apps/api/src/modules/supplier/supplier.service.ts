@@ -25,7 +25,7 @@ export class SupplierService {
       }
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const supplier = await tx.supplier.create({
         data: {
           name: dto.name,
@@ -33,7 +33,6 @@ export class SupplierService {
           contactName: dto.contactName || null,
           email: dto.email,
           phone: dto.phone || null,
-          tenantId: '',
         },
       });
 
@@ -169,7 +168,7 @@ export class SupplierService {
       }
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.supplier.update({
         where: { id },
         data: {
@@ -242,7 +241,7 @@ export class SupplierService {
       );
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.supplierCategory.deleteMany({
         where: { supplierId: id },
       });

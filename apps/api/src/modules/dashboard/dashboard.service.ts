@@ -7,19 +7,17 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
+    // tenantId necessário para filtro em relação nested (QuotationSupplier → Quotation)
+    // pois a extensão multi-tenancy só injeta no where de nível superior.
     const tenantId = TenantContext.getTenantId();
 
     const [activeQuotations, totalSuppliers, totalProducts, pendingProposals] =
       await Promise.all([
         this.prisma.quotation.count({
-          where: { status: 'OPEN', tenantId },
+          where: { status: 'OPEN' },
         }),
-        this.prisma.supplier.count({
-          where: { tenantId },
-        }),
-        this.prisma.product.count({
-          where: { tenantId },
-        }),
+        this.prisma.supplier.count({}),
+        this.prisma.product.count({}),
         this.prisma.quotationSupplier.count({
           where: {
             responseStatus: 'PENDING',

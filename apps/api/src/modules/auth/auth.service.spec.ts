@@ -19,6 +19,9 @@ describe('AuthService', () => {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    cleanUser: {
+      findFirst: jest.fn(),
+    },
     tenant: {
       create: jest.fn(),
     },
@@ -79,7 +82,7 @@ describe('AuthService', () => {
         uid: 'firebase-uid',
         email: 'test@orcalink.com',
       } as any);
-      prismaService.user.findFirst.mockResolvedValue({ id: 'existing-id' });
+      prismaService.cleanUser.findFirst.mockResolvedValue({ id: 'existing-id' });
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
         new ConflictException('User or Firebase UID already registered'),
@@ -91,7 +94,7 @@ describe('AuthService', () => {
         uid: 'firebase-uid',
         email: 'test@orcalink.com',
       } as any);
-      prismaService.user.findFirst.mockResolvedValue(null);
+      prismaService.cleanUser.findFirst.mockResolvedValue(null);
 
       const createdTenant = {
         id: 'tenant-uuid-123',

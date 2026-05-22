@@ -30,7 +30,6 @@ export class ProductService {
         unit: dto.unit,
         internalCode: dto.internalCode,
         categoryId: dto.categoryId,
-        tenantId: '',
       },
     });
   }
@@ -163,7 +162,7 @@ export class ProductService {
       );
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.quotationItem.deleteMany({
         where: { productId: id },
       });

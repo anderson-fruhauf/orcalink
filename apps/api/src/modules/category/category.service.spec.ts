@@ -5,14 +5,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from './category.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { TenantContext } from '../../common/context/tenant-context.js';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 describe('CategoryService', () => {
   let service: CategoryService;
   let prismaService: any;
 
-  const mockTenantId = 'tenant-123';
 
   const mockPrismaService = {
     category: {
@@ -32,7 +30,6 @@ describe('CategoryService', () => {
   };
 
   beforeEach(async () => {
-    jest.spyOn(TenantContext, 'getTenantId').mockReturnValue(mockTenantId);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,8 +55,8 @@ describe('CategoryService', () => {
   describe('create', () => {
     const createDto = { name: 'Categoria Teste' };
 
-    it('should create a category with explicit tenantId', async () => {
-      const mockCreated = { id: 'cat-id-123', name: createDto.name, tenantId: mockTenantId };
+    it('should create a category', async () => {
+      const mockCreated = { id: 'cat-id-123', name: createDto.name };
       prismaService.category.create.mockResolvedValue(mockCreated);
 
       const result = await service.create(createDto);
@@ -67,7 +64,6 @@ describe('CategoryService', () => {
       expect(prismaService.category.create).toHaveBeenCalledWith({
         data: {
           name: createDto.name,
-          tenantId: mockTenantId,
         },
       });
       expect(result).toEqual(mockCreated);
@@ -75,9 +71,9 @@ describe('CategoryService', () => {
   });
 
   describe('findAll', () => {
-    it('should paginate and filter by tenantId', async () => {
+    it('should paginate and filter categories', async () => {
       const mockCategories = [
-        { id: 'cat-1', name: 'Alimentos', tenantId: mockTenantId },
+        { id: 'cat-1', name: 'Alimentos' },
       ];
       prismaService.category.findMany.mockResolvedValue(mockCategories);
       prismaService.category.count.mockResolvedValue(1);
@@ -86,7 +82,7 @@ describe('CategoryService', () => {
       const result = await service.findAll(query);
 
       expect(prismaService.category.findMany).toHaveBeenCalledWith({
-        where: { tenantId: mockTenantId, name: { contains: 'alim', mode: 'insensitive' } },
+        where: { name: { contains: 'alim', mode: 'insensitive' } },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -104,7 +100,7 @@ describe('CategoryService', () => {
       await service.findAll({});
 
       expect(prismaService.category.findMany).toHaveBeenCalledWith({
-        where: { tenantId: mockTenantId },
+        where: {},
         skip: 0,
         take: 20,
         orderBy: { createdAt: 'desc' },
@@ -120,7 +116,7 @@ describe('CategoryService', () => {
         new NotFoundException('Categoria não encontrada'),
       );
       expect(prismaService.category.findFirst).toHaveBeenCalledWith({
-        where: { id: 'non-existent-id', tenantId: mockTenantId },
+        where: { id: 'non-existent-id' },
       });
     });
 
@@ -143,7 +139,7 @@ describe('CategoryService', () => {
       ).rejects.toThrow(new NotFoundException('Categoria não encontrada'));
     });
 
-    it('should update category with tenantId in where', async () => {
+    it('should update category', async () => {
       prismaService.category.findFirst.mockResolvedValue({
         id: 'cat-1',
         name: 'Alimentos',
@@ -154,7 +150,7 @@ describe('CategoryService', () => {
       const result = await service.update('cat-1', { name: 'Bebidas' });
 
       expect(prismaService.category.update).toHaveBeenCalledWith({
-        where: { id: 'cat-1', tenantId: mockTenantId },
+        where: { id: 'cat-1' },
         data: { name: 'Bebidas' },
       });
       expect(result).toEqual(updated);
@@ -199,7 +195,7 @@ describe('CategoryService', () => {
       );
     });
 
-    it('should delete category with tenantId in where', async () => {
+    it('should delete category', async () => {
       prismaService.category.findFirst.mockResolvedValue({
         id: 'cat-1',
         name: 'Alimentos',
@@ -214,7 +210,7 @@ describe('CategoryService', () => {
       const result = await service.remove('cat-1');
 
       expect(prismaService.category.delete).toHaveBeenCalledWith({
-        where: { id: 'cat-1', tenantId: mockTenantId },
+        where: { id: 'cat-1' },
       });
       expect(result).toEqual({ id: 'cat-1', name: 'Alimentos' });
     });

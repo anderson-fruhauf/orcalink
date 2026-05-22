@@ -22,6 +22,8 @@ export class FirebaseAuthGuard implements CanActivate {
   ) {}
 
   static getCachedUser(firebaseUid: string): any | null {
+    console.log('cached', firebaseUid);
+
     const entry = this.userCache.get(firebaseUid);
     if (!entry) return null;
 
@@ -65,7 +67,7 @@ export class FirebaseAuthGuard implements CanActivate {
       let user = FirebaseAuthGuard.getCachedUser(decodedToken.uid);
 
       if (!user) {
-        user = await this.prisma.user.findUnique({
+        user = await this.prisma.cleanUser.findUnique({
           where: { firebaseUid: decodedToken.uid },
           include: { tenant: true },
         });

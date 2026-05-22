@@ -40,7 +40,7 @@ export class AuthService {
     }
 
     // Verificar se o usuário já existe no banco local por firebaseUid ou email
-    const existingUser = await this.prisma.user.findFirst({
+    const existingUser = await this.prisma.cleanUser.findFirst({
       where: {
         OR: [{ firebaseUid }, { email }],
       },
@@ -85,6 +85,8 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
+    console.log(userId);
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { tenant: true },

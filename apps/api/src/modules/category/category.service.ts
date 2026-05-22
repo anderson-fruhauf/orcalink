@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import { TenantContext } from '../../common/context/tenant-context.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { QueryCategoryDto } from './dto/query-category.dto.js';
@@ -15,25 +14,19 @@ export class CategoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateCategoryDto) {
-    const tenantId = TenantContext.getTenantId();
-
     return this.prisma.category.create({
       data: {
         name: dto.name,
-        tenantId: tenantId || '',
       },
     });
   }
 
   async findAll(query: QueryCategoryDto) {
-    const tenantId = TenantContext.getTenantId();
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.CategoryWhereInput = {
-      tenantId,
-    };
+    const where: Prisma.CategoryWhereInput = {};
 
     if (query.search) {
       where.name = {
@@ -66,10 +59,8 @@ export class CategoryService {
   }
 
   async findOne(id: string) {
-    const tenantId = TenantContext.getTenantId();
-
     const category = await this.prisma.category.findFirst({
-      where: { id, tenantId },
+      where: { id },
     });
 
     if (!category) {
@@ -80,10 +71,8 @@ export class CategoryService {
   }
 
   async update(id: string, dto: UpdateCategoryDto) {
-    const tenantId = TenantContext.getTenantId();
-
     const category = await this.prisma.category.findFirst({
-      where: { id, tenantId },
+      where: { id },
     });
 
     if (!category) {
@@ -91,7 +80,7 @@ export class CategoryService {
     }
 
     return this.prisma.category.update({
-      where: { id, tenantId },
+      where: { id },
       data: {
         name: dto.name,
       },
@@ -99,10 +88,8 @@ export class CategoryService {
   }
 
   async remove(id: string) {
-    const tenantId = TenantContext.getTenantId();
-
     const category = await this.prisma.category.findFirst({
-      where: { id, tenantId },
+      where: { id },
     });
 
     if (!category) {
@@ -110,7 +97,7 @@ export class CategoryService {
     }
 
     const productCount = await this.prisma.product.count({
-      where: { categoryId: id, tenantId },
+      where: { categoryId: id },
     });
 
     if (productCount > 0) {
@@ -130,7 +117,7 @@ export class CategoryService {
     }
 
     return this.prisma.category.delete({
-      where: { id, tenantId },
+      where: { id },
     });
   }
 }
