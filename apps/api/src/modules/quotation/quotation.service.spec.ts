@@ -5,11 +5,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { QuotationService } from './quotation.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { MailService } from '../mail/mail.service.js';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('QuotationService', () => {
   let service: QuotationService;
   let prismaService: any;
+  let mailService: any;
+
+  const mockMailService = {
+    checkEmailLimit: jest.fn(),
+    enqueueEmail: jest.fn(),
+  };
 
   const mockPrismaService = {
     quotation: {
@@ -31,6 +38,7 @@ describe('QuotationService', () => {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
       updateMany: jest.fn(),
+      findUnique: jest.fn(),
     },
     magicLink: {
       deleteMany: jest.fn(),
@@ -51,11 +59,13 @@ describe('QuotationService', () => {
       providers: [
         QuotationService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
 
     service = module.get<QuotationService>(QuotationService);
     prismaService = module.get(PrismaService);
+    mailService = module.get(MailService);
 
     jest.clearAllMocks();
 
@@ -412,6 +422,7 @@ describe('QuotationService', () => {
       const deadlineDate = new Date();
       prismaService.quotation.findUnique.mockResolvedValue({
         id: 'q-1',
+        tenantId: 'tenant-123',
         status: 'DRAFT',
         deadline: deadlineDate,
         items: [{ id: 'qi-1' }],
@@ -424,12 +435,74 @@ describe('QuotationService', () => {
 
       const result = await service.publish('q-1');
 
+      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith('tenant-123', 1);
       expect(prismaService.quotation.update).toHaveBeenCalledWith({
         where: { id: 'q-1' },
         data: { status: 'OPEN' },
       });
       expect(prismaService.magicLink.upsert).toHaveBeenCalled();
+      expect(mockMailService.enqueueEmail).toHaveBeenCalledWith('qs-1');
       expect(result.status).toBe('OPEN');
+    });
+  });
+
+  describe('resend', () => {
+    it('should throw NotFoundException if quotation supplier association is not found', async () => {
+      prismaService.quotationSupplier.findUnique.mockResolvedValue(null);
+
+      await expect(service.resend('q-1', 's-1')).rejects.toThrow(
+        new NotFoundException('Fornecedor não associado a esta cotação.'),
+      );
+    });
+
+    it('should throw BadRequestException if quotation is not OPEN', async () => {
+      prismaService.quotationSupplier.findUnique.mockResolvedValue({
+        id: 'qs-1',
+        quotationId: 'q-1',
+        supplierId: 's-1',
+        quotation: {
+          status: 'DRAFT',
+        },
+      });
+
+      await expect(service.resend('q-1', 's-1')).rejects.toThrow(
+        new BadRequestException('Apenas cotações abertas (OPEN) podem ter e-mails reenviados.'),
+      );
+    });
+
+    it('should throw BadRequestException if supplier response status is not PENDING', async () => {
+      prismaService.quotationSupplier.findUnique.mockResolvedValue({
+        id: 'qs-1',
+        quotationId: 'q-1',
+        supplierId: 's-1',
+        responseStatus: 'SUBMITTED',
+        quotation: {
+          status: 'OPEN',
+        },
+      });
+
+      await expect(service.resend('q-1', 's-1')).rejects.toThrow(
+        new BadRequestException('Apenas convites com status pendente podem ser reenviados.'),
+      );
+    });
+
+    it('should check limit, enqueue email and return success if valid', async () => {
+      prismaService.quotationSupplier.findUnique.mockResolvedValue({
+        id: 'qs-1',
+        quotationId: 'q-1',
+        supplierId: 's-1',
+        responseStatus: 'PENDING',
+        quotation: {
+          tenantId: 'tenant-123',
+          status: 'OPEN',
+        },
+      });
+
+      const result = await service.resend('q-1', 's-1');
+
+      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith('tenant-123', 1);
+      expect(mockMailService.enqueueEmail).toHaveBeenCalledWith('qs-1');
+      expect(result).toEqual({ success: true });
     });
   });
 

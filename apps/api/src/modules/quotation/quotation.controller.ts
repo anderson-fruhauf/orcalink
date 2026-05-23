@@ -83,8 +83,18 @@ export class QuotationController {
   }
 
   @Post(':id/publish')
+  @CheckPlanLimit('emails')
   async publish(@Param('id', ParseUUIDPipe) id: string) {
     return this.quotationService.publish(id);
+  }
+
+  @Post(':id/resend/:supplierId')
+  @CheckPlanLimit('emails')
+  async resend(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('supplierId', ParseUUIDPipe) supplierId: string,
+  ) {
+    return this.quotationService.resend(id, supplierId);
   }
 
   @Post(':id/close')

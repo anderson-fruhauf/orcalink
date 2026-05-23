@@ -11,10 +11,14 @@ import { QueryQuotationDto } from './dto/query-quotation.dto.js';
 import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
 import { createHmac } from 'crypto';
+import { MailService } from '../mail/mail.service.js';
 
 @Injectable()
 export class QuotationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(dto: CreateQuotationDto): Promise<Quotation> {
     return this.prisma.quotation.create({
@@ -274,13 +278,16 @@ export class QuotationService {
       );
     }
 
+    // 1. Verify monthly email limit before publishing
+    await this.mailService.checkEmailLimit(quotation.tenantId, quotation.suppliers.length);
+
     const secret =
       process.env['MAGIC_LINK_SECRET'] ||
       process.env['JWT_SECRET'] ||
       'default-magic-link-secret';
 
-    return this.prisma.$transaction(async (tx: any) => {
-      const updatedQuotation = await tx.quotation.update({
+    const updatedQuotation = await this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.quotation.update({
         where: { id },
         data: { status: 'OPEN' },
       });
@@ -305,8 +312,53 @@ export class QuotationService {
         });
       }
 
-      return updatedQuotation;
+      return updated;
     }) as Promise<Quotation>;
+
+    // 2. Queue email jobs for each associated supplier after successful transaction
+    for (const qs of quotation.suppliers) {
+      await this.mailService.enqueueEmail(qs.id);
+    }
+
+    return updatedQuotation;
+  }
+
+  async resend(id: string, supplierId: string): Promise<any> {
+    const qs = await this.prisma.quotationSupplier.findUnique({
+      where: {
+        quotationId_supplierId: {
+          quotationId: id,
+          supplierId,
+        },
+      },
+      include: {
+        quotation: true,
+      },
+    });
+
+    if (!qs) {
+      throw new NotFoundException('Fornecedor não associado a esta cotação.');
+    }
+
+    if (qs.quotation.status !== 'OPEN') {
+      throw new BadRequestException(
+        'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+      );
+    }
+
+    if (qs.responseStatus !== 'PENDING') {
+      throw new BadRequestException(
+        'Apenas convites com status pendente podem ser reenviados.',
+      );
+    }
+
+    // Verify monthly email limit for 1 email resend
+    await this.mailService.checkEmailLimit(qs.quotation.tenantId, 1);
+
+    // Queue email job
+    await this.mailService.enqueueEmail(qs.id);
+
+    return { success: true };
   }
 
   async close(id: string): Promise<Quotation> {
