@@ -11,6 +11,11 @@ import { DashboardHome } from './pages/DashboardHome.js';
 import { Categories } from './pages/Categories.js';
 import { Suppliers } from './pages/Suppliers.js';
 import { SupplierForm } from './pages/SupplierForm.js';
+import { Products } from './pages/Products.js';
+import { ProductForm } from './pages/ProductForm.js';
+import { Quotations } from './pages/Quotations.js';
+import { QuotationForm } from './pages/QuotationForm.js';
+import { QuotationDetail } from './pages/QuotationDetail.js';
 import { PortalFornecedor } from './pages/PortalFornecedor.js';
 
 // Route wrapper for authenticated users
@@ -130,8 +135,12 @@ function App() {
             }
           >
             <Route index element={<DashboardHome />} />
-            <Route path="quotations" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Cotações</h2><p style={{ color: 'var(--text-muted)' }}>Gerencie suas cotações e envie propostas para fornecedores.</p></div>} />
-            <Route path="products" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Produtos</h2><p style={{ color: 'var(--text-muted)' }}>Cadastre e gerencie a lista de produtos da empresa.</p></div>} />
+            <Route path="quotations" element={<Quotations />} />
+            <Route path="quotations/new" element={<QuotationForm />} />
+            <Route path="quotations/:id" element={<QuotationDetail />} />
+            <Route path="products" element={<Products />} />
+            <Route path="products/new" element={<ProductForm />} />
+            <Route path="products/:id/edit" element={<ProductForm />} />
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="suppliers/new" element={<SupplierForm />} />
             <Route path="suppliers/:id/edit" element={<SupplierForm />} />

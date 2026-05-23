@@ -64,7 +64,7 @@ export class EmailProcessor extends WorkerHost {
 
       const itemsHtml = displayItems
         .map(
-          (item) =>
+          (item: any) =>
             `<li style="margin-bottom: 8px; font-size: 14px; color: #475569; line-height: 20px;">
               <strong>${item.product.name}</strong> - ${item.quantity} ${item.product.unit}
               ${
