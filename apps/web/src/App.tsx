@@ -11,6 +11,7 @@ import { DashboardHome } from './pages/DashboardHome.js';
 import { Categories } from './pages/Categories.js';
 import { Suppliers } from './pages/Suppliers.js';
 import { SupplierForm } from './pages/SupplierForm.js';
+import { PortalFornecedor } from './pages/PortalFornecedor.js';
 
 // Route wrapper for authenticated users
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -137,6 +138,9 @@ function App() {
             <Route path="categories" element={<Categories />} />
             <Route path="settings" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Configurações</h2><p style={{ color: 'var(--text-muted)' }}>Ajuste as preferências e configurações de conta.</p></div>} />
           </Route>
+          
+          {/* Public Supplier Portal Route */}
+          <Route path="/v/:token" element={<PortalFornecedor />} />
 
           {/* Root Redirect */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

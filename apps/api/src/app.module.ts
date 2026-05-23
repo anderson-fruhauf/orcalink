@@ -10,6 +10,7 @@ import { SupplierModule } from './modules/supplier/supplier.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { QuotationModule } from './modules/quotation/quotation.module.js';
+import { PortalModule } from './modules/portal/portal.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { BullModule } from '@nestjs/bullmq';
 import { MailModule } from './modules/mail/mail.module.js';
@@ -24,6 +25,7 @@ import { MailModule } from './modules/mail/mail.module.js';
     CategoryModule,
     DashboardModule,
     QuotationModule,
+    PortalModule,
     BullModule.forRoot({
       connection: {
         url: process.env['REDIS_URL'] || 'redis://localhost:6379',
