@@ -105,6 +105,17 @@ export class QuotationService {
             },
           },
         },
+        proposals: {
+          include: {
+            supplier: true,
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        },
+        magicLinks: true,
       },
     });
 
@@ -417,7 +428,7 @@ export class QuotationService {
 
       if (quotation.items.length > 0) {
         await tx.quotationItem.createMany({
-          data: quotation.items.map((item) => ({
+          data: quotation.items.map((item: any) => ({
             quotationId: newQuotation.id,
             productId: item.productId,
             quantity: item.quantity,

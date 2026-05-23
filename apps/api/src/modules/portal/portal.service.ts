@@ -57,9 +57,9 @@ export class PortalService {
     const diffTime = deadline.getTime() - now.getTime();
     const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
-    const items = magicLink.quotation.items.map((item) => {
+    const items = magicLink.quotation.items.map((item: any) => {
       const proposalItem = magicLink.proposal?.items.find(
-        (pi) => pi.productId === item.productId,
+        (pi: any) => pi.productId === item.productId,
       );
       return {
         id: item.id,
@@ -122,7 +122,7 @@ export class PortalService {
       throw new BadRequestException('Todos os itens da cotação devem ser preenchidos.');
     }
 
-    const quotationItemIds = new Set(quotationItems.map((item) => item.id));
+    const quotationItemIds = new Set(quotationItems.map((item: any) => item.id));
     for (const item of submittedItems) {
       if (!quotationItemIds.has(item.quotationItemId)) {
         throw new BadRequestException(`Item inválido na proposta: ${item.quotationItemId}`);
@@ -153,7 +153,7 @@ export class PortalService {
             submittedAt: new Date(),
             items: {
               create: submittedItems.map((item) => {
-                const quotationItem = quotationItems.find((qi) => qi.id === item.quotationItemId);
+                const quotationItem = quotationItems.find((qi: any) => qi.id === item.quotationItemId);
                 return {
                   productId: quotationItem.productId,
                   unitPrice: item.unavailable ? 0 : item.priceInCents,
