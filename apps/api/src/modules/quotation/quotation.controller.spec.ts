@@ -24,6 +24,7 @@ describe('QuotationController', () => {
     removeItem: jest.fn(),
     associateSuppliers: jest.fn(),
     publish: jest.fn(),
+    resend: jest.fn(),
     close: jest.fn(),
     duplicate: jest.fn(),
   };
@@ -176,6 +177,19 @@ describe('QuotationController', () => {
 
       expect(service.publish).toHaveBeenCalledWith(id);
       expect(result).toEqual({ id, status: 'OPEN' });
+    });
+  });
+
+  describe('resend', () => {
+    it('should call quotationService.resend with id and supplierId', async () => {
+      const id = 'a8f58eb9-923f-4221-a7b3-2868ffb8214b';
+      const supplierId = 's-1-uuid';
+      mockQuotationService.resend.mockResolvedValue({ success: true });
+
+      const result = await controller.resend(id, supplierId);
+
+      expect(service.resend).toHaveBeenCalledWith(id, supplierId);
+      expect(result).toEqual({ success: true });
     });
   });
 
