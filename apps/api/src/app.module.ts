@@ -9,6 +9,7 @@ import { ProductModule } from './modules/product/product.module.js';
 import { SupplierModule } from './modules/supplier/supplier.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
+import { QuotationModule } from './modules/quotation/quotation.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 
 @Module({
@@ -20,6 +21,7 @@ import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
     SupplierModule,
     CategoryModule,
     DashboardModule,
+    QuotationModule,
   ],
   controllers: [AppController],
   providers: [
