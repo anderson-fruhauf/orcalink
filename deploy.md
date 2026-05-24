@@ -52,11 +52,13 @@ Antes de começar, certifique-se de ter instalado em sua máquina local:
    ```
 4. Crie um arquivo `terraform.tfvars` para passar as credenciais confidenciais:
    ```hcl
-   gcp_project_id = "orcalink-534b8"
-   gcp_region     = "us-central1"
-   database_url   = "SUA_CONNECTION_STRING_DO_NEON_OU_SUPABASE"
-   redis_url      = "SUA_URL_DO_UPSTASH_REDIS"
-   jwt_secret     = "UM_SEGREDO_JWT_COMPLEXO_E_ALEATORIO"
+   gcp_project_id    = "orcalink-534b8"
+   gcp_region        = "us-central1"
+   database_url      = "SUA_CONNECTION_STRING_DO_NEON_OU_SUPABASE"
+   redis_url         = "SUA_URL_DO_UPSTASH_REDIS"
+   jwt_secret        = "UM_SEGREDO_JWT_COMPLEXO_E_ALEATORIO"
+   resend_api_key    = "SUA_API_KEY_DO_RESEND"
+   resend_from_email = "onboarding@resend.dev"
    ```
 5. Inicialize e aplique o plano do Terraform:
    ```bash

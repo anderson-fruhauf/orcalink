@@ -29,3 +29,15 @@ variable "jwt_secret" {
   sensitive   = true
   default     = "change-me-in-production-temporary-secret"
 }
+
+variable "resend_api_key" {
+  type        = string
+  description = "A chave de API do Resend para envio de e-mails"
+  sensitive   = true
+}
+
+variable "resend_from_email" {
+  type        = string
+  description = "O e-mail de remetente configurado no Resend"
+  default     = "onboarding@resend.dev"
+}
