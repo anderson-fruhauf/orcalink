@@ -3,7 +3,7 @@ name: Continuous Integration (CI)
 on:
   pull_request:
     branches:
-      - main
+      - master
       - develop
 
 jobs:
