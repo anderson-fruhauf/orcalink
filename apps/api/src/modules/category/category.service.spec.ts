@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from './category.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -10,7 +6,6 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 describe('CategoryService', () => {
   let service: CategoryService;
   let prismaService: any;
-
 
   const mockPrismaService = {
     category: {
@@ -30,7 +25,6 @@ describe('CategoryService', () => {
   };
 
   beforeEach(async () => {
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CategoryService,
@@ -72,9 +66,7 @@ describe('CategoryService', () => {
 
   describe('findAll', () => {
     it('should paginate and filter categories', async () => {
-      const mockCategories = [
-        { id: 'cat-1', name: 'Alimentos' },
-      ];
+      const mockCategories = [{ id: 'cat-1', name: 'Alimentos' }];
       prismaService.category.findMany.mockResolvedValue(mockCategories);
       prismaService.category.count.mockResolvedValue(1);
 

@@ -82,7 +82,9 @@ describe('AuthService', () => {
         uid: 'firebase-uid',
         email: 'test@orcalink.com',
       } as any);
-      prismaService.cleanUser.findFirst.mockResolvedValue({ id: 'existing-id' });
+      prismaService.cleanUser.findFirst.mockResolvedValue({
+        id: 'existing-id',
+      });
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
         new ConflictException('User or Firebase UID already registered'),

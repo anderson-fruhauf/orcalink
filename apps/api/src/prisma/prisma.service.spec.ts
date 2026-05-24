@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 import { multiTenancyAllOperations } from './prisma.service.js';
 import { TenantContext } from '../common/context/tenant-context.js';
 
@@ -162,7 +161,9 @@ describe('multiTenancyExtension', () => {
 
   it('should inject tenantId into update where clause', async () => {
     jest.spyOn(TenantContext, 'getTenantId').mockReturnValue('tenant-123');
-    const mockQuery = jest.fn().mockResolvedValue({ id: 'cat-1', name: 'Updated' });
+    const mockQuery = jest
+      .fn()
+      .mockResolvedValue({ id: 'cat-1', name: 'Updated' });
     const args = {
       where: { id: 'cat-1' },
       data: { name: 'Updated' },

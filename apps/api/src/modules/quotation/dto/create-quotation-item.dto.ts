@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateQuotationItemDto {
   @IsUUID('4', { message: 'O ID do produto deve ser um UUID válido.' })

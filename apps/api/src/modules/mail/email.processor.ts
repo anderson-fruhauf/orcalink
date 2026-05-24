@@ -37,7 +37,9 @@ export class EmailProcessor extends WorkerHost {
     });
 
     if (!qs) {
-      throw new Error(`QuotationSupplier association not found for ID: ${quotationSupplierId}`);
+      throw new Error(
+        `QuotationSupplier association not found for ID: ${quotationSupplierId}`,
+      );
     }
 
     const tenantId = qs.quotation.tenantId;
@@ -54,7 +56,9 @@ export class EmailProcessor extends WorkerHost {
       });
 
       if (!magicLink) {
-        throw new Error(`Active MagicLink not found for supplier ${qs.supplierId} on quotation ${qs.quotationId}`);
+        throw new Error(
+          `Active MagicLink not found for supplier ${qs.supplierId} on quotation ${qs.quotationId}`,
+        );
       }
 
       // Format items list: max 5, then "+X itens"
@@ -87,13 +91,16 @@ export class EmailProcessor extends WorkerHost {
       const magicLinkUrl = `${appUrl}/v/${magicLink.token}`;
 
       // Format the deadline to a readable format in pt-BR
-      const deadlineStr = new Date(qs.quotation.deadline).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const deadlineStr = new Date(qs.quotation.deadline).toLocaleDateString(
+        'pt-BR',
+        {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        },
+      );
 
       // Construct visually rich HTML email matching section 10 of styles.md
       const htmlContent = `
@@ -176,7 +183,8 @@ export class EmailProcessor extends WorkerHost {
 </html>
       `.trim();
 
-      const senderEmail = process.env['RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+      const senderEmail =
+        process.env['RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
 
       // Dispatch via Resend
       const { data, error } = await this.resend.emails.send({
@@ -187,7 +195,9 @@ export class EmailProcessor extends WorkerHost {
       });
 
       if (error) {
-        throw new Error(`Resend failed to send email: ${JSON.stringify(error)}`);
+        throw new Error(
+          `Resend failed to send email: ${JSON.stringify(error)}`,
+        );
       }
 
       // Update sentAt in QuotationSupplier

@@ -55,7 +55,10 @@ export class PortalService {
     const now = new Date();
     const deadline = magicLink.quotation.deadline;
     const diffTime = deadline.getTime() - now.getTime();
-    const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const daysRemaining = Math.max(
+      0,
+      Math.ceil(diffTime / (1000 * 60 * 60 * 24)),
+    );
 
     const items = magicLink.quotation.items.map((item: any) => {
       const proposalItem = magicLink.proposal?.items.find(
@@ -119,20 +122,30 @@ export class PortalService {
     const submittedItems = dto.items || [];
 
     if (submittedItems.length !== quotationItems.length) {
-      throw new BadRequestException('Todos os itens da cotação devem ser preenchidos.');
+      throw new BadRequestException(
+        'Todos os itens da cotação devem ser preenchidos.',
+      );
     }
 
-    const quotationItemIds = new Set(quotationItems.map((item: any) => item.id));
+    const quotationItemIds = new Set(
+      quotationItems.map((item: any) => item.id),
+    );
     for (const item of submittedItems) {
       if (!quotationItemIds.has(item.quotationItemId)) {
-        throw new BadRequestException(`Item inválido na proposta: ${item.quotationItemId}`);
+        throw new BadRequestException(
+          `Item inválido na proposta: ${item.quotationItemId}`,
+        );
       }
     }
 
     for (const item of submittedItems) {
       const isUnavailable = item.unavailable === true;
       if (!isUnavailable) {
-        if (item.priceInCents === undefined || item.priceInCents === null || item.priceInCents <= 0) {
+        if (
+          item.priceInCents === undefined ||
+          item.priceInCents === null ||
+          item.priceInCents <= 0
+        ) {
           throw new BadRequestException(
             'Todos os itens devem ter um preço maior que zero ou ser marcados como indisponíveis.',
           );
@@ -153,7 +166,9 @@ export class PortalService {
             submittedAt: new Date(),
             items: {
               create: submittedItems.map((item) => {
-                const quotationItem = quotationItems.find((qi: any) => qi.id === item.quotationItemId);
+                const quotationItem = quotationItems.find(
+                  (qi: any) => qi.id === item.quotationItemId,
+                );
                 return {
                   productId: quotationItem.productId,
                   unitPrice: item.unavailable ? 0 : item.priceInCents,

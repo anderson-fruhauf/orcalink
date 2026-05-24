@@ -10,8 +10,6 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 
 describe('PlanLimitGuard', () => {
   let guard: PlanLimitGuard;
-  let reflector: jest.Mocked<Reflector>;
-  let prismaService: any;
 
   const mockReflector = {
     get: jest.fn(),
@@ -45,8 +43,6 @@ describe('PlanLimitGuard', () => {
     }).compile();
 
     guard = module.get<PlanLimitGuard>(PlanLimitGuard);
-    reflector = module.get(Reflector);
-    prismaService = module.get(PrismaService);
 
     jest.clearAllMocks();
   });

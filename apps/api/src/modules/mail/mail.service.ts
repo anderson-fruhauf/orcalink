@@ -18,7 +18,10 @@ export class MailService {
    * Verifies if sending the requested number of emails will exceed the tenant's plan limits.
    * Throws ForbiddenException if limits are violated.
    */
-  async checkEmailLimit(tenantId: string, additionalCount: number): Promise<void> {
+  async checkEmailLimit(
+    tenantId: string,
+    additionalCount: number,
+  ): Promise<void> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { plan: true },
@@ -48,7 +51,8 @@ export class MailService {
       if (current + additionalCount > 20) {
         throw new ForbiddenException({
           statusCode: 403,
-          message: 'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
+          message:
+            'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
           error: 'Forbidden',
           limit: 20,
           current,

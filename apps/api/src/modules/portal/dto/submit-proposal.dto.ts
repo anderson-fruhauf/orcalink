@@ -1,4 +1,13 @@
-import { IsInt, Min, IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, ArrayNotEmpty } from 'class-validator';
+import {
+  IsInt,
+  Min,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  ArrayNotEmpty,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProposalItemDto } from './proposal-item.dto.js';
 

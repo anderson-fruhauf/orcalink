@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { QuotationService } from './quotation.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -11,7 +7,6 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 describe('QuotationService', () => {
   let service: QuotationService;
   let prismaService: any;
-  let mailService: any;
 
   const mockMailService = {
     checkEmailLimit: jest.fn(),
@@ -65,7 +60,6 @@ describe('QuotationService', () => {
 
     service = module.get<QuotationService>(QuotationService);
     prismaService = module.get(PrismaService);
-    mailService = module.get(MailService);
 
     jest.clearAllMocks();
 
@@ -123,7 +117,7 @@ describe('QuotationService', () => {
         page: 1,
         limit: 10,
         search: 'cotacao',
-        status: 'DRAFT' as any,
+        status: 'DRAFT',
       });
 
       expect(prismaService.quotation.findMany).toHaveBeenCalledWith({
@@ -178,14 +172,25 @@ describe('QuotationService', () => {
           items: {
             include: {
               product: {
-                select: { id: true, name: true, unit: true, internalCode: true },
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                  internalCode: true,
+                },
               },
             },
           },
           suppliers: {
             include: {
               supplier: {
-                select: { id: true, name: true, email: true, phone: true, contactName: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  contactName: true,
+                },
               },
             },
           },
@@ -205,7 +210,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.update('q-1', updateDto)).rejects.toThrow(
-        new BadRequestException('Apenas cotações em rascunho (DRAFT) podem ser editadas.'),
+        new BadRequestException(
+          'Apenas cotações em rascunho (DRAFT) podem ser editadas.',
+        ),
       );
     });
 
@@ -240,7 +247,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.remove('q-1')).rejects.toThrow(
-        new BadRequestException('Apenas cotações em rascunho (DRAFT) podem ser excluídas.'),
+        new BadRequestException(
+          'Apenas cotações em rascunho (DRAFT) podem ser excluídas.',
+        ),
       );
     });
 
@@ -278,7 +287,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.addItem('q-1', itemDto)).rejects.toThrow(
-        new BadRequestException('Apenas cotações em rascunho (DRAFT) podem ser modificadas.'),
+        new BadRequestException(
+          'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        ),
       );
     });
 
@@ -376,7 +387,10 @@ describe('QuotationService', () => {
         status: 'DRAFT',
         suppliers: [{ supplierId: 's-1' }, { supplierId: 's-2' }],
       });
-      prismaService.supplier.findMany.mockResolvedValue([{ id: 's-1' }, { id: 's-2' }]);
+      prismaService.supplier.findMany.mockResolvedValue([
+        { id: 's-1' },
+        { id: 's-2' },
+      ]);
 
       const result = await service.associateSuppliers('q-1', assocDto);
 
@@ -403,7 +417,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.publish('q-1')).rejects.toThrow(
-        new BadRequestException('A cotação deve conter pelo menos um produto antes de ser publicada.'),
+        new BadRequestException(
+          'A cotação deve conter pelo menos um produto antes de ser publicada.',
+        ),
       );
 
       prismaService.quotation.findUnique.mockResolvedValue({
@@ -414,7 +430,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.publish('q-1')).rejects.toThrow(
-        new BadRequestException('A cotação deve ter pelo menos um fornecedor associado antes de ser publicada.'),
+        new BadRequestException(
+          'A cotação deve ter pelo menos um fornecedor associado antes de ser publicada.',
+        ),
       );
     });
 
@@ -435,7 +453,10 @@ describe('QuotationService', () => {
 
       const result = await service.publish('q-1');
 
-      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith('tenant-123', 1);
+      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith(
+        'tenant-123',
+        1,
+      );
       expect(prismaService.quotation.update).toHaveBeenCalledWith({
         where: { id: 'q-1' },
         data: { status: 'OPEN' },
@@ -466,7 +487,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.resend('q-1', 's-1')).rejects.toThrow(
-        new BadRequestException('Apenas cotações abertas (OPEN) podem ter e-mails reenviados.'),
+        new BadRequestException(
+          'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+        ),
       );
     });
 
@@ -482,7 +505,9 @@ describe('QuotationService', () => {
       });
 
       await expect(service.resend('q-1', 's-1')).rejects.toThrow(
-        new BadRequestException('Apenas convites com status pendente podem ser reenviados.'),
+        new BadRequestException(
+          'Apenas convites com status pendente podem ser reenviados.',
+        ),
       );
     });
 
@@ -500,7 +525,10 @@ describe('QuotationService', () => {
 
       const result = await service.resend('q-1', 's-1');
 
-      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith('tenant-123', 1);
+      expect(mockMailService.checkEmailLimit).toHaveBeenCalledWith(
+        'tenant-123',
+        1,
+      );
       expect(mockMailService.enqueueEmail).toHaveBeenCalledWith('qs-1');
       expect(result).toEqual({ success: true });
     });
@@ -547,7 +575,10 @@ describe('QuotationService', () => {
         ],
       };
       prismaService.quotation.findUnique.mockResolvedValue(original);
-      prismaService.quotation.create.mockResolvedValue({ id: 'q-2', title: 'Original (Cópia)' });
+      prismaService.quotation.create.mockResolvedValue({
+        id: 'q-2',
+        title: 'Original (Cópia)',
+      });
 
       await service.duplicate('q-1');
 
@@ -560,8 +591,18 @@ describe('QuotationService', () => {
       });
       expect(prismaService.quotationItem.createMany).toHaveBeenCalledWith({
         data: [
-          { quotationId: 'q-2', productId: 'p-1', quantity: 10, observation: 'Notes 1' },
-          { quotationId: 'q-2', productId: 'p-2', quantity: 20, observation: 'Notes 2' },
+          {
+            quotationId: 'q-2',
+            productId: 'p-1',
+            quantity: 10,
+            observation: 'Notes 1',
+          },
+          {
+            quotationId: 'q-2',
+            productId: 'p-2',
+            quantity: 20,
+            observation: 'Notes 2',
+          },
         ],
       });
     });
