@@ -45,6 +45,16 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "JWT_SECRET"
         value = var.jwt_secret
       }
+
+      env {
+        name  = "RESEND_API_KEY"
+        value = var.resend_api_key
+      }
+
+      env {
+        name  = "RESEND_FROM_EMAIL"
+        value = var.resend_from_email
+      }
     }
   }
 

@@ -35,6 +35,8 @@ services:
       DATABASE_URL: postgresql://orcalink:orcalink_pass@postgres:5432/orcalink
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-secret-key
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
     volumes:
       - ./apps/api:/app
       - /app/node_modules

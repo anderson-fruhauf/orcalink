@@ -37,6 +37,8 @@ services:
       DATABASE_URL: postgresql://orcalink:orcalink_pass@postgres:5432/orcalink
       REDIS_URL: redis://redis:6379
       JWT_SECRET: change-me-in-production
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
     depends_on:
       postgres:
         condition: service_healthy
