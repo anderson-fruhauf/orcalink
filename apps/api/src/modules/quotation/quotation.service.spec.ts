@@ -194,6 +194,17 @@ describe('QuotationService', () => {
               },
             },
           },
+          proposals: {
+            include: {
+              supplier: true,
+              items: {
+                include: {
+                  product: true,
+                },
+              },
+            },
+          },
+          magicLinks: true,
         },
       });
       expect(result).toEqual(mockQuotation);
