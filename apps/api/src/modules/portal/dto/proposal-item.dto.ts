@@ -1,4 +1,11 @@
-import { IsUUID, IsNotEmpty, IsOptional, IsInt, Min, IsBoolean } from 'class-validator';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  IsBoolean,
+} from 'class-validator';
 
 export class ProposalItemDto {
   @IsUUID('4', { message: 'O ID do item da cotação deve ser um UUID válido.' })

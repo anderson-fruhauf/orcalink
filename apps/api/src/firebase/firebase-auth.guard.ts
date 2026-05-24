@@ -21,7 +21,7 @@ export class FirebaseAuthGuard implements CanActivate {
     private readonly prisma: PrismaService,
   ) {}
 
-  static getCachedUser(firebaseUid: string): any | null {
+  static getCachedUser(firebaseUid: string): any {
     console.log('cached', firebaseUid);
 
     const entry = this.userCache.get(firebaseUid);

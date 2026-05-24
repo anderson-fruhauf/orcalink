@@ -61,7 +61,10 @@ describe('CategoryController', () => {
   describe('findAll', () => {
     it('should call categoryService.findAll with query', async () => {
       const query: QueryCategoryDto = { page: 1, limit: 10, search: 'test' };
-      const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      const expected = {
+        data: [],
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+      };
       mockCategoryService.findAll.mockResolvedValue(expected);
 
       const result = await controller.findAll(query);

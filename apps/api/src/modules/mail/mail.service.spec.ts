@@ -51,22 +51,35 @@ describe('MailService', () => {
     });
 
     it('should pass without error if tenant plan is PRO', async () => {
-      prismaService.tenant.findUnique.mockResolvedValue({ id: 'tenant-1', plan: 'PRO' });
+      prismaService.tenant.findUnique.mockResolvedValue({
+        id: 'tenant-1',
+        plan: 'PRO',
+      });
 
-      await expect(service.checkEmailLimit('tenant-1', 50)).resolves.not.toThrow();
+      await expect(
+        service.checkEmailLimit('tenant-1', 50),
+      ).resolves.not.toThrow();
       expect(prismaService.quotationSupplier.count).not.toHaveBeenCalled();
     });
 
     it('should pass if FREE plan limit is not exceeded', async () => {
-      prismaService.tenant.findUnique.mockResolvedValue({ id: 'tenant-1', plan: 'FREE' });
+      prismaService.tenant.findUnique.mockResolvedValue({
+        id: 'tenant-1',
+        plan: 'FREE',
+      });
       prismaService.quotationSupplier.count.mockResolvedValue(10); // 10 already sent
 
-      await expect(service.checkEmailLimit('tenant-1', 5)).resolves.not.toThrow();
+      await expect(
+        service.checkEmailLimit('tenant-1', 5),
+      ).resolves.not.toThrow();
       expect(prismaService.quotationSupplier.count).toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException if FREE plan limit is exceeded', async () => {
-      prismaService.tenant.findUnique.mockResolvedValue({ id: 'tenant-1', plan: 'FREE' });
+      prismaService.tenant.findUnique.mockResolvedValue({
+        id: 'tenant-1',
+        plan: 'FREE',
+      });
       prismaService.quotationSupplier.count.mockResolvedValue(18); // 18 already sent
 
       // 18 + 3 = 21 (which is > 20 limit)

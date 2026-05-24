@@ -37,7 +37,9 @@ describe('QuotationController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuotationController],
-      providers: [{ provide: QuotationService, useValue: mockQuotationService }],
+      providers: [
+        { provide: QuotationService, useValue: mockQuotationService },
+      ],
     })
       .overrideGuard(FirebaseAuthGuard)
       .useValue(mockFirebaseAuthGuard)
@@ -132,7 +134,10 @@ describe('QuotationController', () => {
         quantity: 10,
         notes: 'Obs',
       };
-      mockQuotationService.addItem.mockResolvedValue({ id: 'qi-1', ...itemDto });
+      mockQuotationService.addItem.mockResolvedValue({
+        id: 'qi-1',
+        ...itemDto,
+      });
 
       const result = await controller.addItem(id, itemDto);
 
@@ -159,7 +164,10 @@ describe('QuotationController', () => {
       const suppliersDto: AssociateSuppliersDto = {
         supplierIds: ['s-1', 's-2'],
       };
-      mockQuotationService.associateSuppliers.mockResolvedValue({ id, suppliers: [] });
+      mockQuotationService.associateSuppliers.mockResolvedValue({
+        id,
+        suppliers: [],
+      });
 
       const result = await controller.associateSuppliers(id, suppliersDto);
 
@@ -208,7 +216,10 @@ describe('QuotationController', () => {
   describe('duplicate', () => {
     it('should call quotationService.duplicate with id', async () => {
       const id = 'a8f58eb9-923f-4221-a7b3-2868ffb8214b';
-      mockQuotationService.duplicate.mockResolvedValue({ id: 'new-id', status: 'DRAFT' });
+      mockQuotationService.duplicate.mockResolvedValue({
+        id: 'new-id',
+        status: 'DRAFT',
+      });
 
       const result = await controller.duplicate(id);
 

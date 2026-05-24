@@ -4,7 +4,9 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { TenantContext } from '../../common/context/tenant-context.js';
 
 // Mock Resend SDK
-const mockSend = jest.fn().mockResolvedValue({ data: { id: 'resend-email-id-123' }, error: null });
+const mockSend = jest
+  .fn()
+  .mockResolvedValue({ data: { id: 'resend-email-id-123' }, error: null });
 jest.mock('resend', () => {
   return {
     Resend: jest.fn().mockImplementation(() => {
@@ -73,7 +75,11 @@ describe('EmailProcessor', () => {
           tenant: { name: 'Comprador Ltda' },
           items: [],
         },
-        supplier: { name: 'Fornecedor A', email: 'fornecedor@email.com', contactName: 'José' },
+        supplier: {
+          name: 'Fornecedor A',
+          email: 'fornecedor@email.com',
+          contactName: 'José',
+        },
       };
 
       prismaService.quotationSupplier.findUnique.mockResolvedValue(mockQs);
@@ -97,15 +103,43 @@ describe('EmailProcessor', () => {
           deadline: new Date('2026-06-01T15:00:00Z'),
           tenant: { name: 'Comprador Ltda' },
           items: [
-            { product: { name: 'Produto 1', unit: 'UN' }, quantity: 10, observation: 'Urgent' },
-            { product: { name: 'Produto 2', unit: 'KG' }, quantity: 20, observation: null },
-            { product: { name: 'Produto 3', unit: 'LT' }, quantity: 30, observation: null },
-            { product: { name: 'Produto 4', unit: 'UN' }, quantity: 40, observation: null },
-            { product: { name: 'Produto 5', unit: 'UN' }, quantity: 50, observation: null },
-            { product: { name: 'Produto 6', unit: 'UN' }, quantity: 60, observation: null },
+            {
+              product: { name: 'Produto 1', unit: 'UN' },
+              quantity: 10,
+              observation: 'Urgent',
+            },
+            {
+              product: { name: 'Produto 2', unit: 'KG' },
+              quantity: 20,
+              observation: null,
+            },
+            {
+              product: { name: 'Produto 3', unit: 'LT' },
+              quantity: 30,
+              observation: null,
+            },
+            {
+              product: { name: 'Produto 4', unit: 'UN' },
+              quantity: 40,
+              observation: null,
+            },
+            {
+              product: { name: 'Produto 5', unit: 'UN' },
+              quantity: 50,
+              observation: null,
+            },
+            {
+              product: { name: 'Produto 6', unit: 'UN' },
+              quantity: 60,
+              observation: null,
+            },
           ],
         },
-        supplier: { name: 'Fornecedor A', email: 'fornecedor@email.com', contactName: 'José' },
+        supplier: {
+          name: 'Fornecedor A',
+          email: 'fornecedor@email.com',
+          contactName: 'José',
+        },
       };
 
       const mockMagicLink = {

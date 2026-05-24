@@ -21,7 +21,7 @@ export class QuotationService {
   ) {}
 
   async create(dto: CreateQuotationDto): Promise<Quotation> {
-    return this.prisma.quotation.create({
+    return await this.prisma.quotation.create({
       data: {
         title: dto.title,
         deadline: new Date(dto.deadline),
@@ -227,7 +227,9 @@ export class QuotationService {
         where: { id: { in: dto.supplierIds } },
       });
       if (suppliers.length !== dto.supplierIds.length) {
-        throw new NotFoundException('Um ou mais fornecedores não foram encontrados.');
+        throw new NotFoundException(
+          'Um ou mais fornecedores não foram encontrados.',
+        );
       }
     }
 
@@ -290,41 +292,46 @@ export class QuotationService {
     }
 
     // 1. Verify monthly email limit before publishing
-    await this.mailService.checkEmailLimit(quotation.tenantId, quotation.suppliers.length);
+    await this.mailService.checkEmailLimit(
+      quotation.tenantId,
+      quotation.suppliers.length,
+    );
 
     const secret =
       process.env['MAGIC_LINK_SECRET'] ||
       process.env['JWT_SECRET'] ||
       'default-magic-link-secret';
 
-    const updatedQuotation = await this.prisma.$transaction(async (tx: any) => {
-      const updated = await tx.quotation.update({
-        where: { id },
-        data: { status: 'OPEN' },
-      });
-
-      for (const qs of quotation.suppliers) {
-        const token = createHmac('sha256', secret)
-          .update(qs.id)
-          .digest('hex');
-
-        await tx.magicLink.upsert({
-          where: { token },
-          create: {
-            token,
-            quotationId: id,
-            supplierId: qs.supplierId,
-            expiresAt: quotation.deadline,
-          },
-          update: {
-            active: true,
-            expiresAt: quotation.deadline,
-          },
+    const updatedQuotation = (await this.prisma.$transaction(
+      async (tx: any) => {
+        const updated = await tx.quotation.update({
+          where: { id },
+          data: { status: 'OPEN' },
         });
-      }
 
-      return updated;
-    }) as Promise<Quotation>;
+        for (const qs of quotation.suppliers) {
+          const token = createHmac('sha256', secret)
+            .update(qs.id)
+            .digest('hex');
+
+          await tx.magicLink.upsert({
+            where: { token },
+            create: {
+              token,
+              quotationId: id,
+              supplierId: qs.supplierId,
+              expiresAt: quotation.deadline,
+            },
+            update: {
+              active: true,
+              expiresAt: quotation.deadline,
+            },
+          });
+        }
+
+        return updated;
+      },
+    )) as Promise<Quotation>;
 
     // 2. Queue email jobs for each associated supplier after successful transaction
     for (const qs of quotation.suppliers) {

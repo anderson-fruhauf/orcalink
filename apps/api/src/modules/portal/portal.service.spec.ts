@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { PortalService } from './portal.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -138,9 +134,9 @@ describe('PortalService', () => {
       };
       prismaService.magicLink.findUnique.mockResolvedValue(mockLink);
 
-      await expect(service.getQuotationByToken('inactive-token')).rejects.toThrow(
-        new NotFoundException('Link inválido ou expirado'),
-      );
+      await expect(
+        service.getQuotationByToken('inactive-token'),
+      ).rejects.toThrow(new NotFoundException('Link inválido ou expirado'));
     });
 
     it('should throw NotFoundException if link is expired', async () => {
@@ -149,14 +145,17 @@ describe('PortalService', () => {
         token: 'expired-token',
         active: true,
         expiresAt: new Date(Date.now() - 1000 * 60), // past
-        quotation: { status: 'OPEN', deadline: new Date(Date.now() - 1000 * 60) },
+        quotation: {
+          status: 'OPEN',
+          deadline: new Date(Date.now() - 1000 * 60),
+        },
         proposal: null,
       };
       prismaService.magicLink.findUnique.mockResolvedValue(mockLink);
 
-      await expect(service.getQuotationByToken('expired-token')).rejects.toThrow(
-        new NotFoundException('Link inválido ou expirado'),
-      );
+      await expect(
+        service.getQuotationByToken('expired-token'),
+      ).rejects.toThrow(new NotFoundException('Link inválido ou expirado'));
     });
 
     it('should throw NotFoundException if quotation status is DRAFT', async () => {
@@ -306,7 +305,9 @@ describe('PortalService', () => {
       };
       prismaService.magicLink.findUnique.mockResolvedValue(respondedLink);
 
-      await expect(service.submitProposal('submit-token', validDto)).rejects.toThrow(
+      await expect(
+        service.submitProposal('submit-token', validDto),
+      ).rejects.toThrow(
         new ConflictException('Proposta já enviada para esta cotação'),
       );
     });
@@ -314,9 +315,9 @@ describe('PortalService', () => {
     it('should throw NotFoundException if token is expired/invalid', async () => {
       prismaService.magicLink.findUnique.mockResolvedValue(null);
 
-      await expect(service.submitProposal('invalid-token', validDto)).rejects.toThrow(
-        new NotFoundException('Link inválido ou expirado'),
-      );
+      await expect(
+        service.submitProposal('invalid-token', validDto),
+      ).rejects.toThrow(new NotFoundException('Link inválido ou expirado'));
     });
 
     it('should throw BadRequestException if submitted items do not match quotation items count', async () => {
@@ -324,11 +325,17 @@ describe('PortalService', () => {
 
       const invalidDto: SubmitProposalDto = {
         ...validDto,
-        items: [{ quotationItemId: 'qi-1', priceInCents: 10000, unavailable: false }],
+        items: [
+          { quotationItemId: 'qi-1', priceInCents: 10000, unavailable: false },
+        ],
       };
 
-      await expect(service.submitProposal('submit-token', invalidDto)).rejects.toThrow(
-        new BadRequestException('Todos os itens da cotação devem ser preenchidos.'),
+      await expect(
+        service.submitProposal('submit-token', invalidDto),
+      ).rejects.toThrow(
+        new BadRequestException(
+          'Todos os itens da cotação devem ser preenchidos.',
+        ),
       );
     });
 
@@ -339,11 +346,17 @@ describe('PortalService', () => {
         ...validDto,
         items: [
           { quotationItemId: 'qi-1', priceInCents: 10000, unavailable: false },
-          { quotationItemId: 'qi-invalid', priceInCents: 10000, unavailable: false },
+          {
+            quotationItemId: 'qi-invalid',
+            priceInCents: 10000,
+            unavailable: false,
+          },
         ],
       };
 
-      await expect(service.submitProposal('submit-token', invalidDto)).rejects.toThrow(
+      await expect(
+        service.submitProposal('submit-token', invalidDto),
+      ).rejects.toThrow(
         new BadRequestException('Item inválido na proposta: qi-invalid'),
       );
     });
@@ -359,7 +372,9 @@ describe('PortalService', () => {
         ],
       };
 
-      await expect(service.submitProposal('submit-token', invalidDto)).rejects.toThrow(
+      await expect(
+        service.submitProposal('submit-token', invalidDto),
+      ).rejects.toThrow(
         new BadRequestException(
           'Todos os itens devem ter um preço maior que zero ou ser marcados como indisponíveis.',
         ),

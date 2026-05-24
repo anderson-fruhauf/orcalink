@@ -59,7 +59,7 @@ export const multiTenancyAllOperations = async ({
     }
   }
 
-  return query(args);
+  return await query(args);
 };
 
 export const multiTenancyExtension = Prisma.defineExtension({
@@ -130,7 +130,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   // ─── $transaction delega para o extended client ──────────────────
   async $transaction(args: any, options?: any): Promise<any> {
-    return this._extendedClient.$transaction(args, options);
+    return await this._extendedClient.$transaction(args, options);
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────

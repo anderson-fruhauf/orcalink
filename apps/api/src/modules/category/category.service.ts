@@ -14,7 +14,7 @@ export class CategoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateCategoryDto) {
-    return this.prisma.category.create({
+    return await this.prisma.category.create({
       data: {
         name: dto.name,
       },
