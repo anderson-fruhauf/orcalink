@@ -33,3 +33,9 @@ firebase.json
 *.tfstate
 *.tfstate.backup
 *.tfvars
+
+# Production Environments
+.env.production
+**/.env.production
+env.production
+**/env.production
