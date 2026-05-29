@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
   signInWithEmailAndPassword,
@@ -9,38 +9,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase.js';
 import api from '../lib/api.js';
-
-interface BackendUser {
-  id: string;
-  name: string;
-  email: string;
-  firebaseUid: string;
-}
-
-interface Tenant {
-  id: string;
-  name: string;
-  plan: 'FREE' | 'PRO';
-}
-
-interface UserSession {
-  firebaseUser: FirebaseUser;
-  backendUser?: BackendUser;
-  tenant?: Tenant;
-}
-
-interface AuthContextType {
-  user: UserSession | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<UserSession>;
-  signUp: (email: string, password: string, name: string, companyName: string) => Promise<UserSession>;
-  signOut: () => Promise<void>;
-  sendPasswordReset: (email: string) => Promise<void>;
-  prefilledEmail: string;
-  setPrefilledEmail: (email: string) => void;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './AuthContext.js';
+import type { UserSession } from './AuthContext.js';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserSession | null>(null);
