@@ -80,7 +80,7 @@ export const PortalFornecedor: React.FC = () => {
 
   // Form states
   const [deliveryDays, setDeliveryDays] = useState<number | ''>('');
-  const [paymentCondition, setPaymentCondition] = useState('');
+  const [paymentConditions, setPaymentConditions] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [itemsState, setItemsState] = useState<ProposalItemInput[]>([]);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -105,7 +105,11 @@ export const PortalFornecedor: React.FC = () => {
 
         if (data.alreadyResponded) {
           setDeliveryDays(data.deliveryDays ?? '');
-          setPaymentCondition(data.paymentCondition ?? '');
+          setPaymentConditions(
+            data.paymentCondition
+              ? data.paymentCondition.split(', ').filter(Boolean)
+              : [],
+          );
           setNotes(data.notes ?? '');
           setItemsState(initialItemsState);
         } else {
@@ -115,7 +119,11 @@ export const PortalFornecedor: React.FC = () => {
             try {
               const savedState = JSON.parse(savedStateRaw);
               if (savedState.deliveryDays) setDeliveryDays(savedState.deliveryDays);
-              if (savedState.paymentCondition) setPaymentCondition(savedState.paymentCondition);
+              if (savedState.paymentConditions) {
+                setPaymentConditions(savedState.paymentConditions);
+              } else if (savedState.paymentCondition) {
+                setPaymentConditions(savedState.paymentCondition.split(', ').filter(Boolean));
+              }
               if (savedState.notes) setNotes(savedState.notes);
               if (savedState.items) {
                 // Ensure items match the fetched IDs
@@ -156,12 +164,12 @@ export const PortalFornecedor: React.FC = () => {
 
     const stateToSave = {
       deliveryDays,
-      paymentCondition,
+      paymentConditions,
       notes,
       items: itemsState,
     };
     localStorage.setItem(`orcalink-proposal-${token}`, JSON.stringify(stateToSave));
-  }, [deliveryDays, paymentCondition, notes, itemsState, quotation, loading, token]);
+  }, [deliveryDays, paymentConditions, notes, itemsState, quotation, loading, token]);
 
   const handlePriceChange = (itemId: string, rawValue: string) => {
     // Strip non-digits
@@ -259,8 +267,8 @@ export const PortalFornecedor: React.FC = () => {
       return;
     }
 
-    if (!paymentCondition) {
-      toast.error('Selecione uma condição de pagamento.');
+    if (paymentConditions.length === 0) {
+      toast.error('Selecione pelo menos uma forma de pagamento.');
       return;
     }
 
@@ -268,7 +276,7 @@ export const PortalFornecedor: React.FC = () => {
       setSubmitting(true);
       const payload = {
         deliveryDays,
-        paymentCondition,
+        paymentCondition: paymentConditions.join(', '),
         notes: notes || undefined,
         items: itemsState,
       };
@@ -463,26 +471,56 @@ export const PortalFornecedor: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="paymentCondition">
-              Forma de Pagamento
+            <label className="form-label">
+              Formas de Pagamento Aceitas
             </label>
-            <select
-              id="paymentCondition"
-              disabled={quotation?.alreadyResponded}
-              className="form-input"
-              style={{ height: '44px', fontSize: '15px', paddingRight: '30px' }}
-              value={paymentCondition}
-              onChange={(e) => setPaymentCondition(e.target.value)}
-            >
-              <option value="">Selecione uma opção...</option>
-              <option value="Pix à vista">Pix à vista</option>
-              <option value="Boleto à vista">Boleto à vista</option>
-              <option value="Faturado 15 dias">Faturado 15 dias</option>
-              <option value="Faturado 30 dias">Faturado 30 dias</option>
-              <option value="Faturado 45 dias">Faturado 45 dias</option>
-              <option value="Faturado 60 dias">Faturado 60 dias</option>
-              <option value="Cartão de Crédito">Cartão de Crédito</option>
-            </select>
+            <div className="payment-conditions-grid">
+              {[
+                'Pix à vista',
+                'Boleto à vista',
+                'Faturado 15 dias',
+                'Faturado 30 dias',
+                'Faturado 45 dias',
+                'Faturado 60 dias',
+                'Cartão de Crédito',
+              ].map((option) => {
+                const isSelected = paymentConditions.includes(option);
+                const disabled = quotation?.alreadyResponded;
+
+                return (
+                  <div
+                    key={option}
+                    className={`payment-checkbox-card ${isSelected ? 'selected' : ''} ${
+                      disabled ? 'disabled' : ''
+                    }`}
+                    onClick={() => {
+                      if (disabled) return;
+                      if (isSelected) {
+                        setPaymentConditions(paymentConditions.filter((c) => c !== option));
+                      } else {
+                        setPaymentConditions([...paymentConditions, option]);
+                      }
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`payment-option-${option.replace(/\s+/g, '-')}`}
+                      className="payment-checkbox-input"
+                      checked={isSelected}
+                      disabled={disabled}
+                      readOnly
+                    />
+                    <label
+                      htmlFor={`payment-option-${option.replace(/\s+/g, '-')}`}
+                      className="payment-checkbox-label"
+                      onClick={(e) => e.preventDefault()} // prevent double toggles
+                    >
+                      {option}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="form-group">

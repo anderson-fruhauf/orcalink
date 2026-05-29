@@ -471,3 +471,64 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* Payment Conditions List - Multi-select Checkboxes */
+.payment-conditions-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.payment-checkbox-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background-color: var(--bg-card);
+  transition: all var(--transition-base);
+  user-select: none;
+}
+
+.payment-checkbox-card:hover:not(.disabled) {
+  border-color: var(--neutral-300);
+  background-color: var(--neutral-25);
+}
+
+.payment-checkbox-card.selected {
+  border-color: var(--primary-500);
+  background-color: var(--primary-50);
+}
+
+.payment-checkbox-card.selected:hover:not(.disabled) {
+  background-color: var(--primary-100);
+}
+
+.payment-checkbox-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.payment-checkbox-input {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--neutral-300);
+  accent-color: var(--primary-500);
+  cursor: inherit;
+}
+
+.payment-checkbox-label {
+  font-size: var(--text-sm);
+  color: var(--text-body);
+  font-weight: 500;
+  cursor: inherit;
+}
+
+.payment-checkbox-card.selected .payment-checkbox-label {
+  color: var(--primary-900);
+  font-weight: 600;
+}

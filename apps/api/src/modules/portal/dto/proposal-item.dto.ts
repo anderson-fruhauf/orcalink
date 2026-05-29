@@ -5,6 +5,7 @@ import {
   IsInt,
   Min,
   IsBoolean,
+  ValidateIf,
 } from 'class-validator';
 
 export class ProposalItemDto {
@@ -12,6 +13,7 @@ export class ProposalItemDto {
   @IsNotEmpty({ message: 'O ID do item da cotação é obrigatório.' })
   quotationItemId: string;
 
+  @ValidateIf((o) => !o.unavailable)
   @IsInt({ message: 'O preço deve ser um número inteiro.' })
   @Min(1, { message: 'O preço mínimo deve ser maior que zero.' })
   @IsOptional()
