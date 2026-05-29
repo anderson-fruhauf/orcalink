@@ -33,7 +33,37 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 1. Parâmetros configuráveis (com fallback)
+# 1. Carregar variáveis de ambiente do env.production do backend se existir
+ENV_PROD_PATH=""
+if [ -f "apps/api/.env.production" ]; then
+  ENV_PROD_PATH="apps/api/.env.production"
+elif [ -f "apps/api/env.production" ]; then
+  ENV_PROD_PATH="apps/api/env.production"
+elif [ -f "../apps/api/.env.production" ]; then
+  ENV_PROD_PATH="../apps/api/.env.production"
+elif [ -f "../apps/api/env.production" ]; then
+  ENV_PROD_PATH="../apps/api/env.production"
+fi
+
+if [ -n "$ENV_PROD_PATH" ]; then
+  log_info "Carregando variáveis de ambiente de $ENV_PROD_PATH..."
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [[ ! "$line" =~ ^# ]] && [[ ! -z "${line//[:space:]/}" ]]; then
+      key=$(echo "$line" | cut -d'=' -f1 | xargs)
+      value=$(echo "$line" | cut -d'=' -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+      if [ -n "$key" ]; then
+        export "$key"="$value"
+      fi
+    fi
+  done < "$ENV_PROD_PATH"
+fi
+
+# Mapeia FIREBASE_PROJECT_ID para GCP_PROJECT_ID se estiver definido
+if [ -n "${FIREBASE_PROJECT_ID:-}" ]; then
+  GCP_PROJECT_ID="$FIREBASE_PROJECT_ID"
+fi
+
+# Parâmetros configuráveis (com fallback)
 GCP_PROJECT_ID="${GCP_PROJECT_ID:-orcalink-534b8}"
 GCP_REGION="${GCP_REGION:-us-central1}"
 SERVICE_NAME="${SERVICE_NAME:-orcalink-api}"

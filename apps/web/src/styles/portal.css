@@ -347,6 +347,7 @@
   width: 80px;
   height: 80px;
   margin: 0 auto var(--space-6) auto;
+  overflow: visible;
 }
 
 .checkmark-circle {

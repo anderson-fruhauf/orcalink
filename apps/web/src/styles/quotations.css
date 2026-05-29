@@ -550,3 +550,9 @@
     flex: auto;
   }
 }
+
+.action-btn-whatsapp:hover {
+  background: #e8faf0 !important;
+  color: #25D366 !important;
+  border-color: #a3ecc5 !important;
+}
