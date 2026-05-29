@@ -112,6 +112,7 @@ export const PortalFornecedor: React.FC = () => {
           );
           setNotes(data.notes ?? '');
           setItemsState(initialItemsState);
+          setSubmitted(true);
         } else {
           // Check local storage for draft response
           const savedStateRaw = localStorage.getItem(`orcalink-proposal-${token}`);

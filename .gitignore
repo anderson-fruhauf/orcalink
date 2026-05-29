@@ -12,8 +12,6 @@ Thumbs.db
 skills-lock.json
 
 # Firebase
-firebase.json
-.firebaserc
 .firebase/
 
 # Firebase & Secret Keys
@@ -24,8 +22,6 @@ firebase.json
 firebase-service-account.json
 skills-lock.json
 .agents/*
-firebase.json
-.firebaserc
 
 # Terraform
 .terraform/
