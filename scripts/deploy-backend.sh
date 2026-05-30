@@ -45,6 +45,7 @@ elif [ -f "../apps/api/env.production" ]; then
   ENV_PROD_PATH="../apps/api/env.production"
 fi
 
+ENV_VARS=""
 if [ -n "$ENV_PROD_PATH" ]; then
   log_info "Carregando variáveis de ambiente de $ENV_PROD_PATH..."
   while IFS= read -r line || [ -n "$line" ]; do
@@ -53,9 +54,26 @@ if [ -n "$ENV_PROD_PATH" ]; then
       value=$(echo "$line" | cut -d'=' -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
       if [ -n "$key" ]; then
         export "$key"="$value"
+        # Não enviar PORT ou FIREBASE_SERVICE_ACCOUNT_PATH
+        if [ "$key" != "PORT" ] && [ "$key" != "FIREBASE_SERVICE_ACCOUNT_PATH" ]; then
+          if [ -n "$ENV_VARS" ]; then
+            ENV_VARS="${ENV_VARS}|${key}=${value}"
+          else
+            ENV_VARS="${key}=${value}"
+          fi
+        fi
       fi
     fi
   done < "$ENV_PROD_PATH"
+fi
+
+# Garante que NODE_ENV=production está definido
+if [[ ! "$ENV_VARS" =~ "NODE_ENV=" ]]; then
+  if [ -n "$ENV_VARS" ]; then
+    ENV_VARS="NODE_ENV=production|${ENV_VARS}"
+  else
+    ENV_VARS="NODE_ENV=production"
+  fi
 fi
 
 # Mapeia FIREBASE_PROJECT_ID para GCP_PROJECT_ID se estiver definido
@@ -120,10 +138,16 @@ log_success "Imagem Docker enviada com sucesso."
 
 # 5. Atualização do Serviço no Cloud Run
 log_info "Realizando deploy do serviço '${SERVICE_NAME}' no Cloud Run..."
+EXTRA_PARAMS=()
+if [ -n "$ENV_VARS" ]; then
+  EXTRA_PARAMS+=("--set-env-vars=^|^${ENV_VARS}")
+fi
+
 if ! gcloud run deploy "${SERVICE_NAME}" \
   --image="${IMAGE_PATH}" \
   --region="${GCP_REGION}" \
   --project="${GCP_PROJECT_ID}" \
+  "${EXTRA_PARAMS[@]}" \
   --quiet; then
   log_error "Falha ao atualizar o serviço no Cloud Run."
   exit 1
