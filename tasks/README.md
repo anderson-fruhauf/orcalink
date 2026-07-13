@@ -35,4 +35,3 @@ Este diretório contém todas as tarefas necessárias para implementar o MVP (P0
 | 20 | Encerramento + Expiração Automática | Backend | 13 |
 | 21 | Segurança (Rate Limit, CORS, Helmet) | Backend | 03 |
 | 22 | Observabilidade (Logs, Health Checks) | Backend | 00 |
-| 23 | Docker Production | Infra | All |

@@ -12,7 +12,7 @@ Encerrar cotações manualmente ou automaticamente quando o prazo expira.
 - Magic links invalidados
 
 ### Job de Expiração Automática
-- Cron job (BullMQ repeatable ou `@nestjs/schedule`)
+- Cron job (BullMQ repeatable ou `@nestjs/schedule`) // pode ser um cloud task, ou algo do tipo
 - Roda a cada hora
 - Busca cotações OPEN com `deadline < now()`
 - Executa mesma lógica do encerramento manual

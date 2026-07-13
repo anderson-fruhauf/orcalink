@@ -71,6 +71,14 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 | Anexos | Suporte a upload de documentos pelo fornecedor (fichas técnicas, certificados) |
 | Internacionalização | Suporte multi-moeda e multi-idioma |
 
+### P3 — Projetos e Obras (v3.0)
+| Módulo | Funcionalidades |
+|---|---|
+| Projetos (Obras) | Criação de projetos para agrupar múltiplas cotações sob um contexto único (ex: "Obra Residencial Centro", "Reforma Galpão Industrial") |
+| Visão Consolidada | Dashboard do projeto com resumo financeiro agregado de todas as cotações vinculadas (total orçado, total por categoria, status geral) |
+| Painel Comparativo por Projeto | Matriz comparativa consolidada cruzando todos os fornecedores e itens de todas as cotações do projeto |
+| Relatório de Projeto | Exportação de relatório unificado do projeto com breakdown por cotação/categoria (PDF/Excel) |
+
 ---
 
 ## 5. Jornada Principal do Usuário (Core Flow)
@@ -143,6 +151,17 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
   * Itens marcados como indisponíveis (ex: célula com fundo cinza e ícone "—").
 * **RF29 - Encerramento de Cotação:** O comprador pode encerrar manualmente a cotação a qualquer momento. Isso invalida imediatamente todos os Magic Links associados que ainda não foram respondidos e altera o status da cotação para "Encerrada".
 
+### 6.6. Módulo de Projetos / Obras (P3)
+* **RF30 - Criação de Projeto:** O comprador deve poder criar um Projeto (Obra) informando: Nome do Projeto (ex: "Obra Residencial Centro"), Descrição (opcional), Cliente/Referência (opcional) e Status (Planejamento, Em Andamento, Concluído, Cancelado). O projeto funciona como um agrupador lógico de cotações relacionadas.
+* **RF31 - Vinculação de Cotações a Projeto:** Ao criar ou editar uma cotação, o comprador pode opcionalmente vinculá-la a um Projeto existente. Uma cotação pertence a no máximo um Projeto. Cotações sem projeto continuam funcionando normalmente de forma independente.
+* **RF32 - Dashboard do Projeto (Visão Consolidada):** O comprador deve visualizar um painel do projeto contendo:
+  * Lista de todas as cotações vinculadas com seus respectivos status (Rascunho, Aberta, Encerrada).
+  * Resumo financeiro agregado: valor total orçado (soma dos menores preços de cada cotação), total por categoria e quantidade de fornecedores envolvidos.
+  * Barra de progresso indicando quantas cotações já foram respondidas vs. total.
+* **RF33 - Painel Comparativo Consolidado por Projeto:** Além da matriz comparativa individual por cotação (RF27), o comprador deve poder visualizar uma matriz consolidada que agrupa todas as cotações do projeto. A visão permite identificar o custo total da obra por fornecedor (quando o mesmo fornecedor participa de múltiplas cotações do projeto) e o custo total geral.
+* **RF34 - Listagem e Filtros de Projetos:** O comprador deve ter acesso a uma listagem de todos os seus projetos com filtros por status e busca textual. Cada card/linha exibe: nome, quantidade de cotações vinculadas, valor total estimado e status.
+* **RF35 - Relatório Unificado do Projeto:** O comprador deve poder exportar um relatório consolidado do projeto contendo o breakdown por cotação/categoria, fornecedores selecionados, valores individuais e totais. Formatos suportados: PDF e Excel.
+
 ---
 
 ## 7. Requisitos Não Funcionais (RNF)
@@ -153,17 +172,16 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 * **RNF04 - Banco de Dados:** Uso de **um único banco de dados PostgreSQL** compartilhado entre todos os tenants, gerenciado via **Prisma ORM** para consistência relacional, migrações versionadas e controle estrito das entidades. O isolamento multi-tenant é implementado no nível da aplicação via coluna `tenantId` (UUID) presente em todas as tabelas de domínio. Toda query deve incluir filtro por `tenantId` obrigatoriamente — implementado via middleware/interceptor global no NestJS para eliminar risco de vazamento de dados entre tenants.
 * **RNF05 - Processamento em Fila (Background Jobs):** O envio de e-mails deve ser delegado para um sistema de mensageria/filas (**BullMQ** com **Redis**), garantindo que a API não sofra gargalos ou timeouts.
 * **RNF06 - Segurança dos Magic Links:** Os tokens contidos nos links devem ser hashes criptográficos únicos baseados em UUIDv4 combinados com assinatura HMAC utilizando chave secreta da aplicação, com tempo de expiração atrelado à validade da cotação.
-* **RNF07 - Infraestrutura e Deploy:** O sistema deve ser completamente containerizado utilizando **Docker** e estruturado via **Docker Compose**, facilitando a implantação automatizada em servidores VPS Linux.
-* **RNF08 - Segurança de API:** A API deve implementar:
+* **RNF07 - Segurança de API:** A API deve implementar:
   * **Rate Limiting:** Limites de requisições por IP/token para endpoints públicos (portal do fornecedor) e autenticados (painel do comprador).
   * **CORS:** Configuração restritiva permitindo apenas origens autorizadas.
   * **Headers de Segurança:** Implementação via Helmet (X-Frame-Options, CSP, HSTS, etc.).
   * **Proteção contra enumeração:** Respostas genéricas para Magic Links inválidos (sem distinção entre "não existe" e "expirado").
-* **RNF09 - Observabilidade:**
+* **RNF08 - Observabilidade:**
   * **Logging Estruturado:** Logs em formato JSON com níveis (info, warn, error) e correlation IDs por requisição.
   * **Monitoramento de Erros:** Integração com serviço de monitoramento (ex: Sentry) para captura automática de exceções.
   * **Health Checks:** Endpoints `/health` e `/ready` para monitoramento de infraestrutura.
-* **RNF10 - Estratégia de Testes:**
+* **RNF09 - Estratégia de Testes:**
   * **Testes Unitários:** Cobertura mínima dos serviços de domínio (cotações, magic links, cálculos).
   * **Testes de Integração:** Validação dos endpoints da API com banco de dados de teste.
   * **Testes E2E (Portal do Fornecedor):** Validação do fluxo completo de preenchimento em viewport mobile.
@@ -214,15 +232,16 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 
 | Recurso | Free | Pro |
 |---|---|---|
-| Cotações ativas simultâneas | 5 | Ilimitado |
-| Fornecedores cadastrados | 10 | Ilimitado |
-| Produtos cadastrados | 50 | Ilimitado |
+| Cotações ativas simultâneas | 2 | Ilimitado |
+| Fornecedores cadastrados | 5 | Ilimitado |
+| Produtos cadastrados | 20 | Ilimitado |
 | Envios de e-mail / mês | 20 | Ilimitado |
 | Disparo WhatsApp | ❌ (P1) | ❌ (P1) |
 | Importação CSV | ❌ (P1) | ❌ (P1) |
 | Exportação PDF/Excel | ❌ (P1) | ❌ (P1) |
 | Templates de Cotação | ❌ (P2) | ❌ (P2) |
 | Múltiplos Usuários | ❌ (P2) | ❌ (P2) |
+| Projetos / Obras | ❌ (P3) | ❌ (P3) |
 | Suporte | Comunidade / Docs | E-mail prioritário |
 | **Preço** | **Grátis** | **A definir** |
 

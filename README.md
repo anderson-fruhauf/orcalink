@@ -33,7 +33,6 @@ O Orçalink foi desenhado para ser eficiente e escalável a custo zero no MVP (S
 | **Autenticação** | **Firebase Auth** | Gestão segura de identidades (Firebase Client SDK no web / Admin SDK no API). |
 | **Background Jobs** | **BullMQ** + **Redis** | Fila de processamento assíncrono dedicada para envio de e-mails sem gargalos de API. |
 | **Disparo de E-mails**| **Resend** | Provedor transacional moderno para envio de e-mails rápidos com fallback para AWS SES. |
-| **Containerização** | **Docker** / **Docker Compose** | Ambiente local idêntico ao ambiente produtivo em um comando. |
 
 ### 🏢 Arquitetura Multi-Tenant
 
@@ -54,7 +53,6 @@ orcalink/
 │   └── web/                   # Frontend React (usa npm)
 ├── tasks/                     # Roteiro das 24 tasks ordenadas por dependência do MVP
 ├── docker-compose.dev.yml     # Serviços de BD (Postgres) e Cache (Redis) locais
-├── docker-compose.yml         # Configurações gerais
 ├── orcalink-prd.md            # Documento de Requisitos de Produto completo
 ├── DEVELOPMENT_GUIDE.md       # Regras e padrões de código obrigatórios (TDD, SOLID)
 └── styles.md                  # Especificações do Design System (Cores, Fontes, Componentes)
