@@ -288,6 +288,7 @@
   transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .kpi-card:hover {

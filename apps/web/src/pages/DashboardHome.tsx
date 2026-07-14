@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText, Users, Package, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import api from '../lib/api.js';
@@ -13,6 +14,7 @@ interface DashboardStats {
 
 export const DashboardHome: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +44,7 @@ export const DashboardHome: React.FC = () => {
       icon: FileText,
       colorClass: 'primary',
       description: 'Cotações com status Aberta',
+      link: '/dashboard/quotations',
     },
     {
       label: 'Fornecedores',
@@ -49,6 +52,7 @@ export const DashboardHome: React.FC = () => {
       icon: Users,
       colorClass: 'accent',
       description: 'Fornecedores cadastrados',
+      link: '/dashboard/suppliers',
     },
     {
       label: 'Produtos',
@@ -56,6 +60,7 @@ export const DashboardHome: React.FC = () => {
       icon: Package,
       colorClass: 'success',
       description: 'Itens ativos no catálogo',
+      link: '/dashboard/products',
     },
     {
       label: 'Pendentes',
@@ -63,6 +68,7 @@ export const DashboardHome: React.FC = () => {
       icon: Clock,
       colorClass: 'warning',
       description: 'Aguardando fornecedores',
+      link: '/dashboard/quotations',
       pulse: true,
     },
   ];
@@ -78,7 +84,14 @@ export const DashboardHome: React.FC = () => {
       {/* KPI Grid */}
       <div className="kpi-grid">
         {kpis.map((kpi, idx) => (
-          <div key={idx} className="kpi-card">
+          <div
+            key={idx}
+            className="kpi-card"
+            onClick={() => navigate(kpi.link)}
+            role="link"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate(kpi.link)}
+          >
             <div className="kpi-card-header">
               <span className="kpi-card-label">{kpi.label}</span>
               <div className={`kpi-card-icon ${kpi.colorClass}`}>
