@@ -45,8 +45,12 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-      - name: Set Artifact Registry URL
-        run: echo "ARTIFACT_REGISTRY=${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/orcalink-api" >> $GITHUB_ENV
+      - name: Set and sanitize environment variables
+        run: |
+          # Sanitize PROJECT_ID in case the GitHub Secret has accidental hidden newlines (\r or \n) or spaces
+          CLEAN_PROJECT_ID=$(echo "${{ secrets.GCP_PROJECT_ID }}" | tr -d '\r\n ' | xargs)
+          echo "CLEAN_PROJECT_ID=$CLEAN_PROJECT_ID" >> $GITHUB_ENV
+          echo "ARTIFACT_REGISTRY=${{ env.GCP_REGION }}-docker.pkg.dev/$CLEAN_PROJECT_ID/orcalink-api" >> $GITHUB_ENV
 
       - name: Build Docker image
         working-directory: apps/api
@@ -87,14 +91,14 @@ jobs:
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
-            --project ${{ secrets.GCP_PROJECT_ID }} \
-            --platform managed \
-            --quiet
+            --project ${{ env.CLEAN_PROJECT_ID }} \
+            --port 3333 \
+            --allow-unauthenticated
 
       - name: Verify deployment
         run: |
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --project=${{ env.CLEAN_PROJECT_ID }} \
             --region=${{ env.GCP_REGION }} \
             --format='value(status.url)')
           echo "✅ API deployed at: $SERVICE_URL"
@@ -132,10 +136,15 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: npm run build
 
+      - name: Sanitize project ID for Firebase
+        run: |
+          CLEAN_PROJECT_ID=$(echo "${{ secrets.GCP_PROJECT_ID }}" | tr -d '\r\n ' | xargs)
+          echo "CLEAN_PROJECT_ID=$CLEAN_PROJECT_ID" >> $GITHUB_ENV
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
-          projectId: ${{ secrets.GCP_PROJECT_ID }}
+          projectId: ${{ env.CLEAN_PROJECT_ID }}
