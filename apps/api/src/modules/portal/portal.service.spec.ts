@@ -1,10 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PortalService } from './portal.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SubmitProposalDto } from './dto/submit-proposal.dto.js';
 
 describe('PortalService', () => {
@@ -306,9 +303,7 @@ describe('PortalService', () => {
 
       await expect(
         service.submitProposal('submit-token', validDto),
-      ).rejects.toThrow(
-        new NotFoundException('Link inválido ou expirado'),
-      );
+      ).rejects.toThrow(new NotFoundException('Link inválido ou expirado'));
     });
 
     it('should throw NotFoundException if token is expired/invalid', async () => {

@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module.js';
 import helmet from 'helmet';
 import request from 'supertest';
@@ -68,9 +65,7 @@ describe('Security (e2e)', () => {
 
   describe('CORS', () => {
     it('should respond successfully to GET requests', () => {
-      return request(app.getHttpServer())
-        .get('/api')
-        .expect(200);
+      return request(app.getHttpServer()).get('/api').expect(200);
     });
   });
 

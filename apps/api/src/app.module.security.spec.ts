@@ -1,5 +1,4 @@
 import { ValidationPipe } from '@nestjs/common';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 describe('Security Configuration', () => {
   describe('ThrottlerModule', () => {
