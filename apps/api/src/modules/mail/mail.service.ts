@@ -12,7 +12,8 @@ export class MailService {
   private readonly resend: Resend;
 
   constructor(private readonly prisma: PrismaService) {
-    const apiKey = process.env['RESEND_API_KEY'] || 're_mock_key';
+    const rawKey = process.env['RESEND_API_KEY'] || 're_mock_key';
+    const apiKey = rawKey.trim();
     this.resend = new Resend(apiKey);
   }
 
