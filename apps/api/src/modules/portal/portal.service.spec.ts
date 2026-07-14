@@ -3,7 +3,6 @@ import { PortalService } from './portal.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { SubmitProposalDto } from './dto/submit-proposal.dto.js';
@@ -298,7 +297,7 @@ describe('PortalService', () => {
       expect(result).toEqual({ id: 'prop-123' });
     });
 
-    it('should throw ConflictException if already submitted', async () => {
+    it('should throw NotFoundException if already submitted', async () => {
       const respondedLink = {
         ...mockLink,
         proposal: { id: 'existing-prop' },
@@ -308,7 +307,7 @@ describe('PortalService', () => {
       await expect(
         service.submitProposal('submit-token', validDto),
       ).rejects.toThrow(
-        new ConflictException('Proposta já enviada para esta cotação'),
+        new NotFoundException('Link inválido ou expirado'),
       );
     });
 

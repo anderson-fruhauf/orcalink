@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { FirebaseAuthGuard } from '../../firebase/firebase-auth.guard.js';
@@ -16,6 +17,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async register(
     @Body() dto: RegisterDto,
     @Headers('authorization') authHeader: string,

@@ -7,10 +7,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PortalService } from './portal.service.js';
 import { SubmitProposalDto } from './dto/submit-proposal.dto.js';
 
 @Controller('portal')
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 export class PortalController {
   constructor(private readonly portalService: PortalService) {}
 

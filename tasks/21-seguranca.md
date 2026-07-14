@@ -15,10 +15,13 @@ Hardening de segurança da API conforme RNF08.
 5. **Validação global**: `ValidationPipe` com `whitelist: true, forbidNonWhitelisted: true`
 
 ## Critérios de Aceite
-- [ ] Headers de segurança presentes (verificar com securityheaders.com)
-- [ ] CORS bloqueia origens não autorizadas
-- [ ] Rate limit retorna 429 ao exceder
-- [ ] DTOs rejeitam campos extras
+- [x] Headers de segurança presentes (verificar com securityheaders.com)
+- [x] CORS bloqueia origens não autorizadas
+- [x] Rate limit retorna 429 ao exceder
+- [x] DTOs rejeitam campos extras
+
+## Status
+**Concluida** — 181 testes passando (172 unitarios + 9 e2e).
 
 ## Refs
 - PRD: RNF08

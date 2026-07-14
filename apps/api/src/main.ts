@@ -1,17 +1,30 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
-    app.enableCors();
+
+    app.use(helmet());
+
+    const allowedOrigins = process.env.APP_URL
+      ? process.env.APP_URL.split(',').map((url) => url.trim())
+      : true;
+
+    app.enableCors({
+      origin: allowedOrigins,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      credentials: true,
+    });
+
     const port = process.env.PORT ?? 3333;
     await app.listen(port, '0.0.0.0');
-    console.log(`🚀 Application is running on: http://0.0.0.0:${port}/api`);
+    console.log(`Application is running on: http://0.0.0.0:${port}/api`);
   } catch (error) {
-    console.error('❌ Fatal error during application bootstrap:', error);
+    console.error('Fatal error during application bootstrap:', error);
     process.exit(1);
   }
 }

@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -115,7 +114,7 @@ export class PortalService {
     }
 
     if (magicLink.proposal) {
-      throw new ConflictException('Proposta já enviada para esta cotação');
+      throw new NotFoundException('Link inválido ou expirado');
     }
 
     const quotationItems = magicLink.quotation.items;
