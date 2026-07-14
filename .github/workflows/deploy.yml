@@ -93,7 +93,10 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --project ${{ env.CLEAN_PROJECT_ID }} \
             --port 3333 \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --clear-secrets \
+            --clear-vpc-connector \
+            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL || format('https://{0}.web.app', secrets.GCP_PROJECT_ID) }}"
 
       - name: Verify deployment
         run: |
