@@ -135,7 +135,14 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   // ─── Lifecycle ───────────────────────────────────────────────────
   async onModuleInit(): Promise<void> {
-    await this._baseClient.$connect();
+    // Conecta em background sem travar o boot da aplicação e do probe TCP no Cloud Run.
+    // Se o banco (ex: Neon ou Supabase) estiver em standby/cold-start, ele acordará na primeira query sem dar crash de startup.
+    this._baseClient
+      .$connect()
+      .then(() => console.log('✔ Prisma connected successfully'))
+      .catch((err: any) =>
+        console.error('⚠ Prisma initial connect check (will retry on query):', err.message),
+      );
   }
 
   async onModuleDestroy(): Promise<void> {
