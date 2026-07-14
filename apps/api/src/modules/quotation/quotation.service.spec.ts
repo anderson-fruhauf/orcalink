@@ -10,7 +10,7 @@ describe('QuotationService', () => {
 
   const mockMailService = {
     checkEmailLimit: jest.fn(),
-    enqueueEmail: jest.fn(),
+    sendEmail: jest.fn(),
   };
 
   const mockPrismaService = {
@@ -473,7 +473,7 @@ describe('QuotationService', () => {
         data: { status: 'OPEN' },
       });
       expect(prismaService.magicLink.upsert).toHaveBeenCalled();
-      expect(mockMailService.enqueueEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
       expect(result.status).toBe('OPEN');
     });
   });
@@ -540,7 +540,7 @@ describe('QuotationService', () => {
         'tenant-123',
         1,
       );
-      expect(mockMailService.enqueueEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
       expect(result).toEqual({ success: true });
     });
   });

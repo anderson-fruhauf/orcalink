@@ -335,7 +335,7 @@ export class QuotationService {
 
     // 2. Queue email jobs for each associated supplier after successful transaction
     for (const qs of quotation.suppliers) {
-      await this.mailService.enqueueEmail(qs.id);
+      await this.mailService.sendEmail(qs.id);
     }
 
     return updatedQuotation;
@@ -374,7 +374,7 @@ export class QuotationService {
     await this.mailService.checkEmailLimit(qs.quotation.tenantId, 1);
 
     // Queue email job
-    await this.mailService.enqueueEmail(qs.id);
+    await this.mailService.sendEmail(qs.id);
 
     return { success: true };
   }
