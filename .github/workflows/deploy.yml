@@ -83,12 +83,13 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.GCP_REGION }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          image: ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }}
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --platform managed \
+            --quiet
 
       - name: Verify deployment
         run: |
