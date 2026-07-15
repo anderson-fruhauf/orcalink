@@ -64,7 +64,7 @@ describe('FirebaseAuthGuard', () => {
     );
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Firebase error'),
+      new UnauthorizedException('Invalid Firebase token'),
     );
   });
 

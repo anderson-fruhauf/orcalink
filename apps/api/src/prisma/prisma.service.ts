@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient, Prisma } from '../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -73,6 +78,7 @@ export const multiTenancyExtension = Prisma.defineExtension({
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PrismaService.name);
   private readonly _baseClient: PrismaClient;
   private readonly _extendedClient: any;
 
@@ -149,11 +155,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     // Se o banco (ex: Neon ou Supabase) estiver em standby/cold-start, ele acordará na primeira query sem dar crash de startup.
     this._baseClient
       .$connect()
-      .then(() => console.log('✔ Prisma connected successfully'))
+      .then(() => this.logger.log('✔ Prisma connected successfully'))
       .catch((err: any) =>
-        console.error(
-          '⚠ Prisma initial connect check (will retry on query):',
-          err.message,
+        this.logger.error(
+          `⚠ Prisma initial connect check (will retry on query): ${err.message}`,
         ),
       );
   }

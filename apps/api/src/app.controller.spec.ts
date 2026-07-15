@@ -6,7 +6,6 @@ import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('AppController', () => {
   let appController: AppController;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     isHealthy: jest.fn(),
@@ -25,7 +24,6 @@ describe('AppController', () => {
     }).compile();
 
     appController = app.get<AppController>(AppController);
-    prismaService = app.get<PrismaService>(PrismaService);
   });
 
   describe('root', () => {

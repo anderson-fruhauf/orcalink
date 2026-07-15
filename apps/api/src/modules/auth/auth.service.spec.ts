@@ -73,7 +73,7 @@ describe('AuthService', () => {
       );
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
-        new UnauthorizedException('Auth error'),
+        new UnauthorizedException('Invalid Firebase token'),
       );
     });
 
