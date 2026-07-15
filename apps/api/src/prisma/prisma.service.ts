@@ -133,6 +133,16 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return await this._extendedClient.$transaction(args, options);
   }
 
+  // ─── Health check ────────────────────────────────────────────────
+  async isHealthy(): Promise<boolean> {
+    try {
+      await this._baseClient.$executeRawUnsafe('SELECT 1');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // ─── Lifecycle ───────────────────────────────────────────────────
   onModuleInit(): void {
     // Conecta em background sem travar o boot da aplicação e do probe TCP no Cloud Run.

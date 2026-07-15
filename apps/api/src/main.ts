@@ -2,10 +2,13 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
+import { JsonLogger } from './common/logger/json-logger.js';
 
 async function bootstrap() {
   try {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+      logger: new JsonLogger(),
+    });
     app.setGlobalPrefix('api');
 
     app.use(helmet());
