@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { FirebaseAdminService } from '../../firebase/firebase-admin.service.js';
@@ -9,6 +10,8 @@ import { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebaseAdmin: FirebaseAdminService,
@@ -28,9 +31,11 @@ export class AuthService {
     try {
       decodedToken = await this.firebaseAdmin.verifyIdToken(token);
     } catch (error) {
-      throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Invalid Firebase token',
+      this.logger.error(
+        'Firebase token verification failed during registration',
+        error instanceof Error ? error.stack : String(error),
       );
+      throw new UnauthorizedException('Invalid Firebase token');
     }
 
     const { uid: firebaseUid, email } = decodedToken;
@@ -85,8 +90,6 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
-    console.log(userId);
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { tenant: true },

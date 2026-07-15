@@ -3,18 +3,57 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+class SimpleLruCache<K, V> {
+  private readonly cache = new Map<K, V>();
+  constructor(private readonly maxLimit: number) {}
+
+  get(key: K): V | undefined {
+    if (!this.cache.has(key)) return undefined;
+    const value = this.cache.get(key)!;
+    this.cache.delete(key);
+    this.cache.set(key, value);
+    return value;
+  }
+
+  set(key: K, value: V): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxLimit) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
+    }
+    this.cache.set(key, value);
+  }
+
+  delete(key: K): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
-  // Cache em memória compartilhado entre instâncias (estático)
-  private static readonly userCache = new Map<
+  private readonly logger = new Logger(FirebaseAuthGuard.name);
+
+  // Cache em memória com limite de tamanho (LRU) para evitar crescimento sem fim
+  private static readonly userCache = new SimpleLruCache<
     string,
     { user: any; expiresAt: number }
-  >();
-  private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+  >(1000);
+
+  // TTL reduzido para no máximo 60 segundos para garantir que usuários desativados
+  // percam o acesso rapidamente (conforme critério de aceitação).
+  private static readonly CACHE_TTL_MS = 60 * 1000; // 60 segundos
 
   constructor(
     private readonly firebaseAdmin: FirebaseAdminService,
@@ -22,8 +61,6 @@ export class FirebaseAuthGuard implements CanActivate {
   ) {}
 
   static getCachedUser(firebaseUid: string): any {
-    console.log('cached', firebaseUid);
-
     const entry = this.userCache.get(firebaseUid);
     if (!entry) return null;
 
@@ -95,9 +132,11 @@ export class FirebaseAuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Invalid Firebase token',
+      this.logger.error(
+        'Firebase auth verification failed',
+        error instanceof Error ? error.stack : String(error),
       );
+      throw new UnauthorizedException('Invalid Firebase token');
     }
   }
 }

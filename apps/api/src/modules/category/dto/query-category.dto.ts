@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, Min, IsString } from 'class-validator';
+import { IsOptional, IsInt, Min, IsString, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryCategoryDto {
@@ -16,5 +16,8 @@ export class QueryCategoryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100, {
+    message: 'O termo de busca deve ter no máximo 100 caracteres.',
+  })
   search?: string;
 }

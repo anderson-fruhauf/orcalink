@@ -49,11 +49,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorName = exception.name;
     }
 
+    const msgString = Array.isArray(message) ? message.join(', ') : message;
+
     LoggerContext.run({ correlationId }, () => {
-      if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+      if (statusCode === 500) {
         this.logger.error(
           {
-            message: `Internal Server Error: ${message}`,
+            message: `Internal Server Error: ${msgString}`,
             path: httpAdapter.getRequestUrl(request),
             method: httpAdapter.getRequestMethod(request),
             statusCode,
@@ -63,7 +65,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         );
       } else {
         this.logger.warn(
-          `Exception: ${message} (Status: ${statusCode}) - Path: ${httpAdapter.getRequestUrl(request)}`,
+          `Exception: ${msgString} (Status: ${statusCode}) - Path: ${httpAdapter.getRequestUrl(request)}`,
           'GlobalExceptionFilter',
         );
       }

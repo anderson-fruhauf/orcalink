@@ -1,4 +1,11 @@
-import { IsOptional, IsInt, Min, IsString, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  IsString,
+  IsEnum,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { QuotationStatus } from '../../../generated/prisma/client.js';
 
@@ -17,6 +24,9 @@ export class QueryQuotationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100, {
+    message: 'O termo de busca deve ter no máximo 100 caracteres.',
+  })
   search?: string;
 
   @IsOptional()
