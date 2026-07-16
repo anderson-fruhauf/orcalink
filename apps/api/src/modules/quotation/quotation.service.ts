@@ -342,6 +342,8 @@ export class QuotationService {
   }
 
   async resend(id: string, supplierId: string): Promise<any> {
+    await this.findOne(id);
+
     const qs = await this.prisma.quotationSupplier.findUnique({
       where: {
         quotationId_supplierId: {
