@@ -8,6 +8,10 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { JsonLogger } from '../logger/json-logger.js';
 import { LoggerContext } from '../logger/logger-context.js';
+import {
+  INTERNAL_ERROR_MESSAGE,
+  NOT_FOUND_MESSAGE,
+} from '../constants/error-messages.js';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -31,25 +35,38 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    let message: string | string[] = 'Erro interno do servidor';
-    let errorName = 'InternalServerError';
+    let message: string | string[] = INTERNAL_ERROR_MESSAGE;
+    let errorName = 'ErroInterno';
 
     if (exceptionResponse) {
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         message =
           (exceptionResponse as any).message ||
-          JSON.stringify(exceptionResponse);
-        errorName = (exceptionResponse as any).error || exception.name;
+          INTERNAL_ERROR_MESSAGE;
+        errorName = mapErrorLabel(statusCode, (exceptionResponse as any).error);
       } else {
-        message = String(exceptionResponse);
-        errorName = exception.name;
+        message =
+          statusCode >= 500 ? INTERNAL_ERROR_MESSAGE : String(exceptionResponse);
+        errorName = mapErrorLabel(statusCode);
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
-      errorName = exception.name;
+      message = statusCode >= 500 ? INTERNAL_ERROR_MESSAGE : exception.message;
+      errorName = mapErrorLabel(statusCode, exception.name);
+    }
+
+    if (statusCode >= 500) {
+      message = INTERNAL_ERROR_MESSAGE;
     }
 
     const msgString = Array.isArray(message) ? message.join(', ') : message;
+
+    if (
+      statusCode === 404 &&
+      typeof msgString === 'string' &&
+      /^Cannot (GET|POST|PUT|PATCH|DELETE)/.test(msgString)
+    ) {
+      message = NOT_FOUND_MESSAGE;
+    }
 
     LoggerContext.run({ correlationId }, () => {
       if (statusCode === 500) {
@@ -79,5 +96,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     httpAdapter.reply(response, responseBody, statusCode);
+  }
+}
+
+function mapErrorLabel(statusCode: number, rawError?: string): string {
+  switch (statusCode) {
+    case 400:
+      return 'RequisicaoInvalida';
+    case 401:
+      return 'NaoAutorizado';
+    case 403:
+      return 'AcessoNegado';
+    case 404:
+      return 'NaoEncontrado';
+    case 409:
+      return 'Conflito';
+    case 503:
+      return 'Indisponivel';
+    default:
+      if (statusCode >= 500) {
+        return 'ErroInterno';
+      }
+      return rawError || 'Erro';
   }
 }

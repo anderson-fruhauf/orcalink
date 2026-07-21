@@ -130,7 +130,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser editadas.',
+        'Apenas cotações em rascunho podem ser editadas.',
       );
     }
 
@@ -147,7 +147,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser excluídas.',
+        'Apenas cotações em rascunho podem ser excluídas.',
       );
     }
 
@@ -163,7 +163,7 @@ export class QuotationService {
     const quotation = await this.findOne(quotationId);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
@@ -198,7 +198,7 @@ export class QuotationService {
     const quotation = await this.findOne(quotationId);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
@@ -206,7 +206,7 @@ export class QuotationService {
       where: { id: itemId, quotationId },
     });
     if (!item) {
-      throw new NotFoundException('Item da cotação não encontrado.');
+      throw new NotFoundException('Item não encontrado.');
     }
 
     return this.prisma.quotationItem.delete({
@@ -218,7 +218,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
@@ -275,7 +275,7 @@ export class QuotationService {
 
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser publicadas.',
+        'Apenas cotações em rascunho podem ser publicadas.',
       );
     }
 
@@ -360,7 +360,7 @@ export class QuotationService {
 
     if (qs.quotation.status !== 'OPEN') {
       throw new BadRequestException(
-        'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+        'Apenas cotações abertas podem ter e-mails reenviados.',
       );
     }
 
@@ -383,7 +383,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'OPEN') {
       throw new BadRequestException(
-        'Apenas cotações abertas (OPEN) podem ser encerradas.',
+        'Apenas cotações abertas podem ser encerradas.',
       );
     }
 

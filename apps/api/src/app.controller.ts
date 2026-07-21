@@ -1,6 +1,7 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { AppService } from './app.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { SERVICE_UNAVAILABLE_MESSAGE } from './common/constants/error-messages.js';
 
 @Controller()
 export class AppController {
@@ -26,10 +27,7 @@ export class AppController {
   async getReady() {
     const dbHealthy = await this.prisma.isHealthy();
     if (!dbHealthy) {
-      throw new ServiceUnavailableException({
-        status: 'error',
-        database: 'down',
-      });
+      throw new ServiceUnavailableException(SERVICE_UNAVAILABLE_MESSAGE);
     }
 
     return {

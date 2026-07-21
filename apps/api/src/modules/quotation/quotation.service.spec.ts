@@ -222,7 +222,7 @@ describe('QuotationService', () => {
 
       await expect(service.update('q-1', updateDto)).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser editadas.',
+          'Apenas cotações em rascunho podem ser editadas.',
         ),
       );
     });
@@ -259,7 +259,7 @@ describe('QuotationService', () => {
 
       await expect(service.remove('q-1')).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser excluídas.',
+          'Apenas cotações em rascunho podem ser excluídas.',
         ),
       );
     });
@@ -299,7 +299,7 @@ describe('QuotationService', () => {
 
       await expect(service.addItem('q-1', itemDto)).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+          'Apenas cotações em rascunho podem ser modificadas.',
         ),
       );
     });
@@ -372,7 +372,7 @@ describe('QuotationService', () => {
       prismaService.quotationItem.findFirst.mockResolvedValue(null);
 
       await expect(service.removeItem('q-1', 'qi-1')).rejects.toThrow(
-        new NotFoundException('Item da cotação não encontrado.'),
+        new NotFoundException('Item não encontrado.'),
       );
     });
   });
@@ -499,7 +499,7 @@ describe('QuotationService', () => {
 
       await expect(service.resend('q-1', 's-1')).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+          'Apenas cotações abertas podem ter e-mails reenviados.',
         ),
       );
     });

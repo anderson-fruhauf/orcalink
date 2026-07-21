@@ -351,7 +351,7 @@ describe('PortalService', () => {
       await expect(
         service.submitProposal('submit-token', invalidDto),
       ).rejects.toThrow(
-        new BadRequestException('Item inválido na proposta: qi-invalid'),
+        new BadRequestException('Item inválido na proposta.'),
       );
     });
 

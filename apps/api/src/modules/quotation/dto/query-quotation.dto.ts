@@ -31,7 +31,7 @@ export class QueryQuotationDto {
 
   @IsOptional()
   @IsEnum(QuotationStatus, {
-    message: 'O status deve ser DRAFT, OPEN ou CLOSED.',
+    message: 'Status inválido.',
   })
   status?: QuotationStatus;
 }

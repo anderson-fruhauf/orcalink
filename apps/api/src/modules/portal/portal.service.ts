@@ -131,9 +131,7 @@ export class PortalService {
     );
     for (const item of submittedItems) {
       if (!quotationItemIds.has(item.quotationItemId)) {
-        throw new BadRequestException(
-          `Item inválido na proposta: ${item.quotationItemId}`,
-        );
+        throw new BadRequestException('Item inválido na proposta.');
       }
     }
 

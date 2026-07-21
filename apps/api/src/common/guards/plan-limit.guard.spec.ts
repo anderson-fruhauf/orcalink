@@ -7,6 +7,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { PlanLimitGuard } from './plan-limit.guard.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  AUTH_UNAUTHORIZED_MESSAGE,
+  PLAN_LIMIT_MESSAGE,
+} from '../constants/error-messages.js';
 
 describe('PlanLimitGuard', () => {
   let guard: PlanLimitGuard;
@@ -69,7 +73,7 @@ describe('PlanLimitGuard', () => {
     } as unknown as ExecutionContext;
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Tenant context not found'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
@@ -78,7 +82,7 @@ describe('PlanLimitGuard', () => {
     const context = createMockExecutionContext({});
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Tenant context not found'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
@@ -88,7 +92,7 @@ describe('PlanLimitGuard', () => {
     mockPrismaService.tenant.findUnique.mockResolvedValue(null);
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Tenant not found'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
@@ -136,16 +140,8 @@ describe('PlanLimitGuard', () => {
         await guard.canActivate(context);
       } catch (err: any) {
         expect(err.getStatus()).toBe(403);
-        expect(err.getResponse()).toEqual({
-          statusCode: 403,
-          message:
-            'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
-          error: 'Forbidden',
-          limit: 10,
-          current: 10,
-          resource: 'suppliers',
-          plan: 'FREE',
-        });
+        const response = err.getResponse() as { message: string };
+        expect(response.message).toBe(PLAN_LIMIT_MESSAGE);
       }
     });
 

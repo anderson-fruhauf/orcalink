@@ -433,6 +433,58 @@
   gap: var(--space-1);
 }
 
+.action-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.action-menu-dropdown {
+  min-width: 220px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  animation: fadeIn 150ms ease;
+}
+
+.action-menu-dropdown-portal {
+  position: fixed;
+  z-index: 1000;
+  transform: translateX(-100%);
+}
+
+.action-menu-dropdown-portal.is-above {
+  transform: translate(-100%, -100%);
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.action-menu-item:hover {
+  background: var(--neutral-50);
+  color: var(--text-heading);
+}
+
+.action-menu-item-whatsapp:hover {
+  background: #e8faf0;
+  color: #128C7E;
+}
+
 /* Comparison tab list style */
 .comparative-list {
   display: flex;

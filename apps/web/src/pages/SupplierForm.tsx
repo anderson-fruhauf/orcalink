@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { X, ChevronDown, ArrowLeft } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import { formatDocument, formatPhone } from '../utils/masks.js';
 import '../styles/suppliers.css';
@@ -162,15 +163,11 @@ export const SupplierForm: React.FC = () => {
         toast.success('Fornecedor criado com sucesso.');
       }
       navigate('/dashboard/suppliers');
-    } catch (error) {
-      const err = error as { response?: { status?: number; data?: { message?: string } } };
-      if (err.response?.status === 403) {
-        // Plan limit reached
-        const msg = err.response?.data?.message || 'Limite do plano atingido. Faça upgrade para o plano Pro.';
-        toast.error(msg, { duration: 5000 });
+    } catch (error: any) {
+      if (error?.response?.status === 403) {
+        toast.error(getApiErrorMessage(error, 'Limite do plano atingido. Faça upgrade para o plano Pro.'), { duration: 5000 });
       } else {
-        const message = err.response?.data?.message || 'Erro ao salvar o fornecedor.';
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, 'Erro ao salvar o fornecedor.'));
       }
     } finally {
       setSaving(false);

@@ -279,7 +279,7 @@ describe('SupplierService', () => {
 
       await expect(service.remove('supp-1')).rejects.toThrow(
         new ConflictException(
-          'Não é possível excluir um fornecedor com proposta pendente em uma cotação ativa (status OPEN).',
+          'Não é possível excluir um fornecedor com proposta pendente em uma cotação ativa.',
         ),
       );
       expect(prismaService.quotationSupplier.findFirst).toHaveBeenCalledWith({

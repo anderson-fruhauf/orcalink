@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Clock, Check, AlertCircle, Info } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import '../styles/portal.css';
 
@@ -146,8 +147,7 @@ export const PortalFornecedor: React.FC = () => {
         }
       } catch (err: any) {
         console.error('Erro ao buscar cotação:', err);
-        const msg = err.response?.data?.message || 'Este link de acesso é inválido ou já expirou.';
-        setErrorMsg(msg);
+        setErrorMsg(getApiErrorMessage(err, 'Este link de acesso é inválido ou já expirou.'));
       } finally {
         setLoading(false);
         isFirstLoad.current = false;
@@ -290,8 +290,7 @@ export const PortalFornecedor: React.FC = () => {
       toast.success('Proposta enviada com sucesso!');
     } catch (err: any) {
       console.error(err);
-      const message = err.response?.data?.message || 'Erro ao enviar proposta.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(err, 'Erro ao enviar proposta.'));
     } finally {
       setSubmitting(false);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Pencil, Trash2, AlertTriangle, Users, ChevronDown } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import { Modal } from '../components/Modal.js';
 import { formatDocument, formatPhone } from '../utils/masks.js';
@@ -128,12 +129,7 @@ export const Suppliers: React.FC = () => {
       setDeletingSupplier(null);
       fetchSuppliers();
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string; error?: string } } };
-      const message =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Erro ao excluir fornecedor.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, 'Erro ao excluir fornecedor.'));
       setDeletingSupplier(null);
     }
   };

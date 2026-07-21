@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FirebaseAuthGuard } from './firebase-auth.guard';
 import { FirebaseAdminService } from './firebase-admin.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AUTH_UNAUTHORIZED_MESSAGE } from '../common/constants/error-messages';
 
 describe('FirebaseAuthGuard', () => {
   let guard: FirebaseAuthGuard;
@@ -46,14 +47,14 @@ describe('FirebaseAuthGuard', () => {
   it('should throw UnauthorizedException if no authorization header is present', async () => {
     const context = createMockExecutionContext(null);
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Missing authorization header'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
   it('should throw UnauthorizedException if header is not Bearer', async () => {
     const context = createMockExecutionContext('Basic some-token');
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Invalid authorization header format'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
@@ -64,7 +65,7 @@ describe('FirebaseAuthGuard', () => {
     );
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('Invalid Firebase token'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 
@@ -77,7 +78,7 @@ describe('FirebaseAuthGuard', () => {
     prismaService.cleanUser.findUnique.mockResolvedValue(null);
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      new UnauthorizedException('User not registered in local database'),
+      new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
     );
   });
 

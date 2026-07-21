@@ -8,6 +8,10 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PLAN_LIMIT_KEY } from '../decorators/check-plan-limit.decorator.js';
+import {
+  AUTH_UNAUTHORIZED_MESSAGE,
+  PLAN_LIMIT_MESSAGE,
+} from '../constants/error-messages.js';
 
 export type PlanResource =
   | 'activeQuotations'
@@ -73,7 +77,7 @@ export class PlanLimitGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.tenantId) {
-      throw new UnauthorizedException('Tenant context not found');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     const tenantId = user.tenantId;
@@ -85,7 +89,7 @@ export class PlanLimitGuard implements CanActivate {
     });
 
     if (!tenant) {
-      throw new UnauthorizedException('Tenant not found');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     const plan = tenant.plan as keyof typeof PLAN_LIMITS;
@@ -142,16 +146,7 @@ export class PlanLimitGuard implements CanActivate {
     }
 
     if (current >= limit) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        message:
-          'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
-        error: 'Forbidden',
-        limit,
-        current,
-        resource: mappedResource,
-        plan,
-      });
+      throw new ForbiddenException(PLAN_LIMIT_MESSAGE);
     }
 
     return true;

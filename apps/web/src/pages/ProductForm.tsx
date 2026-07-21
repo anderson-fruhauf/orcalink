@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ChevronDown, ArrowLeft, AlertTriangle } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import '../styles/products.css';
 
@@ -138,11 +139,9 @@ export const ProductForm: React.FC = () => {
     } catch (error: any) {
       if (error?.response?.status === 403) {
         setLimitExceeded(true);
-        const msg = error?.response?.data?.message || 'Limite do plano atingido. Faça upgrade para o plano Pro.';
-        toast.error(msg, { duration: 5000 });
+        toast.error(getApiErrorMessage(error, 'Limite do plano atingido. Faça upgrade para o plano Pro.'), { duration: 5000 });
       } else {
-        const message = error?.response?.data?.message || 'Erro ao salvar o produto.';
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, 'Erro ao salvar o produto.'));
       }
     } finally {
       setSaving(false);

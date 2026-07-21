@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Search, Trash2, Users, Save, Send, Package } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import '../styles/quotations.css';
 
@@ -219,8 +220,7 @@ export const QuotationForm: React.FC = () => {
 
       navigate(`/dashboard/quotations/${quotationId}`);
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Erro ao salvar cotação.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, 'Erro ao salvar cotação.'));
     } finally {
       setSubmitting(false);
     }
