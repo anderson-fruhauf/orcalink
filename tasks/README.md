@@ -35,3 +35,11 @@ Este diretório contém todas as tarefas necessárias para implementar o MVP (P0
 | 20 | Encerramento + Expiração Automática | Backend | 13 |
 | 21 | Segurança (Rate Limit, CORS, Helmet) | Backend | 03 |
 | 22 | Observabilidade (Logs, Health Checks) | Backend | 00 |
+
+## P1 — Automação (v1.1)
+
+Tasks fora do MVP, executadas após o P0.
+
+| # | Task | Camada | Depende de |
+|---|---|---|---|
+| 23 | Integração WhatsApp (QR Code, não-oficial) | Backend + Frontend | 14, 15, 16, 22 |
