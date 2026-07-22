@@ -6,3 +6,7 @@ export const NOT_FOUND_MESSAGE = 'Recurso não encontrado.';
 export const SERVICE_UNAVAILABLE_MESSAGE =
   'Serviço temporariamente indisponível.';
 export const INTERNAL_ERROR_MESSAGE = 'Erro interno do servidor.';
+export const WHATSAPP_NOT_CONNECTED_MESSAGE =
+  'WhatsApp não conectado. Conecte um número para enviar por este canal.';
+export const WHATSAPP_DISABLED_MESSAGE =
+  'Integração com WhatsApp indisponível no momento.';

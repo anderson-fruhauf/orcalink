@@ -40,13 +40,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exceptionResponse) {
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        message =
-          (exceptionResponse as any).message ||
-          INTERNAL_ERROR_MESSAGE;
+        message = (exceptionResponse as any).message || INTERNAL_ERROR_MESSAGE;
         errorName = mapErrorLabel(statusCode, (exceptionResponse as any).error);
       } else {
         message =
-          statusCode >= 500 ? INTERNAL_ERROR_MESSAGE : String(exceptionResponse);
+          statusCode >= 500
+            ? INTERNAL_ERROR_MESSAGE
+            : String(exceptionResponse);
         errorName = mapErrorLabel(statusCode);
       }
     } else if (exception instanceof Error) {

@@ -205,40 +205,74 @@
 
 /* ===== Channel Preference Toggle ===== */
 .channel-toggle {
-  display: inline-flex;
-  width: fit-content;
+  display: flex;
+  width: 100%;
+  padding: 4px;
+  gap: 4px;
+  background: var(--neutral-100);
   border: 1.5px solid var(--neutral-200);
   border-radius: var(--radius-md);
-  overflow: hidden;
 }
 
 .channel-toggle-option {
   display: flex;
+  flex: 1;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 12px;
   min-height: 44px;
   font-size: var(--text-sm);
   font-weight: 500;
   font-family: inherit;
   color: var(--text-muted);
-  background: var(--bg-card);
+  background: transparent;
   border: none;
+  border-radius: calc(var(--radius-md) - 4px);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.channel-toggle-option + .channel-toggle-option {
-  border-left: 1.5px solid var(--neutral-200);
-}
-
-.channel-toggle-option:hover:not(.active) {
-  background: var(--neutral-50);
+.channel-toggle-option:hover:not(.active):not(:disabled) {
+  background: var(--bg-card);
+  color: var(--text-body);
 }
 
 .channel-toggle-option.active {
+  font-weight: 600;
+}
+
+.channel-toggle-option.active-email {
   background: var(--primary-50);
   color: var(--primary-700);
+  box-shadow: inset 0 0 0 2px var(--primary-500);
+}
+
+.channel-toggle-option.active-email svg {
+  color: var(--primary-600);
+}
+
+.channel-toggle-option.active-whatsapp {
+  background: #e8faf0;
+  color: #128c4b;
+  box-shadow: inset 0 0 0 2px #25d366;
+}
+
+.channel-toggle-option.active-whatsapp svg {
+  color: #25d366;
+}
+
+.channel-toggle-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.channel-toggle--inline {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .form-hint {

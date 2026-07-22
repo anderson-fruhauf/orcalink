@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuotationService } from './quotation.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { WhatsappService } from '../whatsapp/whatsapp.service.js';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('QuotationService', () => {
@@ -11,6 +12,10 @@ describe('QuotationService', () => {
   const mockMailService = {
     checkEmailLimit: jest.fn(),
     sendEmail: jest.fn(),
+  };
+
+  const mockWhatsappService = {
+    sendQuotationMessages: jest.fn(),
   };
 
   const mockPrismaService = {
@@ -34,6 +39,7 @@ describe('QuotationService', () => {
       createMany: jest.fn(),
       updateMany: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     magicLink: {
       deleteMany: jest.fn(),
@@ -55,6 +61,7 @@ describe('QuotationService', () => {
         QuotationService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: MailService, useValue: mockMailService },
+        { provide: WhatsappService, useValue: mockWhatsappService },
       ],
     }).compile();
 
@@ -399,8 +406,8 @@ describe('QuotationService', () => {
         suppliers: [{ supplierId: 's-1' }, { supplierId: 's-2' }],
       });
       prismaService.supplier.findMany.mockResolvedValue([
-        { id: 's-1' },
-        { id: 's-2' },
+        { id: 's-1', preferredChannel: 'EMAIL' },
+        { id: 's-2', preferredChannel: 'WHATSAPP' },
       ]);
 
       const result = await service.associateSuppliers('q-1', assocDto);
@@ -410,8 +417,8 @@ describe('QuotationService', () => {
       });
       expect(prismaService.quotationSupplier.createMany).toHaveBeenCalledWith({
         data: [
-          { quotationId: 'q-1', supplierId: 's-1' },
-          { quotationId: 'q-1', supplierId: 's-2' },
+          { quotationId: 'q-1', supplierId: 's-1', channel: 'EMAIL' },
+          { quotationId: 'q-1', supplierId: 's-2', channel: 'WHATSAPP' },
         ],
       });
       expect(result.suppliers).toHaveLength(2);
@@ -455,11 +462,15 @@ describe('QuotationService', () => {
         status: 'DRAFT',
         deadline: deadlineDate,
         items: [{ id: 'qi-1' }],
-        suppliers: [{ id: 'qs-1', supplierId: 's-1' }],
+        suppliers: [{ id: 'qs-1', supplierId: 's-1', channel: 'EMAIL' }],
       });
       prismaService.quotation.update.mockResolvedValue({
         id: 'q-1',
         status: 'OPEN',
+      });
+      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
+        sentIds: [],
+        fallbackToEmail: [],
       });
 
       const result = await service.publish('q-1');
@@ -475,6 +486,38 @@ describe('QuotationService', () => {
       expect(prismaService.magicLink.upsert).toHaveBeenCalled();
       expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
       expect(result.status).toBe('OPEN');
+    });
+
+    it('should dispatch whatsapp and fallback failed suppliers to email', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 'tenant-123',
+        status: 'DRAFT',
+        deadline: new Date(),
+        items: [{ id: 'qi-1' }],
+        suppliers: [
+          { id: 'qs-1', supplierId: 's-1', channel: 'WHATSAPP' },
+          { id: 'qs-2', supplierId: 's-2', channel: 'EMAIL' },
+        ],
+      });
+      prismaService.quotation.update.mockResolvedValue({
+        id: 'q-1',
+        status: 'OPEN',
+      });
+      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
+        sentIds: ['qs-1'],
+        fallbackToEmail: ['qs-3'],
+      });
+
+      await service.publish('q-1');
+
+      expect(mockWhatsappService.sendQuotationMessages).toHaveBeenCalledWith(
+        'tenant-123',
+        'q-1',
+        ['qs-1'],
+      );
+      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-2');
+      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-3');
     });
   });
 
@@ -522,16 +565,21 @@ describe('QuotationService', () => {
       );
     });
 
-    it('should check limit, enqueue email and return success if valid', async () => {
+    it('should check limit, dispatch invite and return success if valid', async () => {
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
         supplierId: 's-1',
+        channel: 'WHATSAPP',
         responseStatus: 'PENDING',
         quotation: {
           tenantId: 'tenant-123',
           status: 'OPEN',
         },
+      });
+      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
+        sentIds: ['qs-1'],
+        fallbackToEmail: [],
       });
 
       const result = await service.resend('q-1', 's-1');
@@ -540,7 +588,11 @@ describe('QuotationService', () => {
         'tenant-123',
         1,
       );
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockWhatsappService.sendQuotationMessages).toHaveBeenCalledWith(
+        'tenant-123',
+        'q-1',
+        ['qs-1'],
+      );
       expect(result).toEqual({ success: true });
     });
   });

@@ -9,6 +9,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3333',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes, req) => {
+            if (req.url?.includes('/whatsapp/connect')) {
+              proxyRes.headers['x-accel-buffering'] = 'no';
+              proxyRes.headers['cache-control'] = 'no-cache, no-transform';
+            }
+          });
+        },
       },
     },
   },

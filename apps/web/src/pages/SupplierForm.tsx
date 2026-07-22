@@ -298,10 +298,10 @@ export const SupplierForm: React.FC = () => {
 
             <div className="form-group form-group-full">
               <label className="form-label">Canal de Envio Preferido</label>
-              <div className="channel-toggle" role="group" aria-label="Canal de envio preferido">
+              <div className="channel-toggle channel-toggle--inline" role="group" aria-label="Canal de envio preferido">
                 <button
                   type="button"
-                  className={`channel-toggle-option ${preferredChannel === 'EMAIL' ? 'active' : ''}`}
+                  className={`channel-toggle-option ${preferredChannel === 'EMAIL' ? 'active active-email' : ''}`}
                   onClick={() => setPreferredChannel('EMAIL')}
                   aria-pressed={preferredChannel === 'EMAIL'}
                 >
@@ -310,7 +310,7 @@ export const SupplierForm: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className={`channel-toggle-option ${preferredChannel === 'WHATSAPP' ? 'active' : ''}`}
+                  className={`channel-toggle-option ${preferredChannel === 'WHATSAPP' ? 'active active-whatsapp' : ''}`}
                   onClick={() => setPreferredChannel('WHATSAPP')}
                   aria-pressed={preferredChannel === 'WHATSAPP'}
                 >

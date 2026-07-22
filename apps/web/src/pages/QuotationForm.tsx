@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Search, Trash2, Users, Save, Send, Package } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, Users, Save, Send, Package, MessageCircle, AlertTriangle } from 'lucide-react';
 import api from '../lib/api.js';
 import { getApiErrorMessage } from '../lib/errors.js';
+import { fetchWhatsappStatus, type WhatsappStatus } from '../lib/whatsapp.js';
+import { type DispatchChannel } from '../lib/dispatch-channel.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { SupplierChannelToggle } from '../components/SupplierChannelToggle.js';
+import { WhatsappConnectModal } from '../components/WhatsappConnectModal.js';
 import toast from 'react-hot-toast';
 import '../styles/quotations.css';
+import '../styles/suppliers.css';
+import '../styles/settings.css';
 
 interface Product {
   id: string;
@@ -21,6 +28,8 @@ interface Supplier {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  preferredChannel?: DispatchChannel;
   categories?: {
     category: {
       id: string;
@@ -37,6 +46,8 @@ interface SelectedItem {
 
 export const QuotationForm: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isPro = user?.tenant?.plan === 'PRO';
 
   // Wizard state
   const [step, setStep] = useState(1);
@@ -54,7 +65,10 @@ export const QuotationForm: React.FC = () => {
   // Step 3 states
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
+  const [supplierChannels, setSupplierChannels] = useState<Record<string, DispatchChannel>>({});
   const [filterBySelectedCategories, setFilterBySelectedCategories] = useState(true);
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsappStatus | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
 
   // Loading/saving states
   const [submitting, setSubmitting] = useState(false);
@@ -85,6 +99,23 @@ export const QuotationForm: React.FC = () => {
     const localISOTime = new Date(tomorrow.getTime() - tzoffset).toISOString().slice(0, 16);
     setDeadline(localISOTime);
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!isPro) {
+      setWhatsappStatus(null);
+      return;
+    }
+
+    fetchWhatsappStatus()
+      .then(setWhatsappStatus)
+      .catch(() =>
+        setWhatsappStatus({
+          state: 'DISCONNECTED',
+          connectedNumber: null,
+          lastConnectedAt: null,
+        }),
+      );
+  }, [isPro]);
 
   // Step 1 Validation
   const validateStep1 = () => {
@@ -153,12 +184,48 @@ export const QuotationForm: React.FC = () => {
 
   // Step 3 Supplier toggle
   const handleToggleSupplier = (supplierId: string) => {
-    setSelectedSupplierIds((prev) =>
-      prev.includes(supplierId)
-        ? prev.filter((id) => id !== supplierId)
-        : [...prev, supplierId]
-    );
+    const isSelected = selectedSupplierIds.includes(supplierId);
+
+    if (isSelected) {
+      setSelectedSupplierIds((prev) => prev.filter((id) => id !== supplierId));
+      setSupplierChannels((prev) => {
+        const next = { ...prev };
+        delete next[supplierId];
+        return next;
+      });
+      return;
+    }
+
+    const supplier = allSuppliers.find((item) => item.id === supplierId);
+    setSelectedSupplierIds((prev) => [...prev, supplierId]);
+    setSupplierChannels((prev) => ({
+      ...prev,
+      [supplierId]: supplier?.preferredChannel || 'EMAIL',
+    }));
   };
+
+  const handleSupplierChannelChange = (
+    supplierId: string,
+    channel: DispatchChannel,
+  ) => {
+    setSupplierChannels((prev) => ({
+      ...prev,
+      [supplierId]: channel,
+    }));
+  };
+
+  const handleWhatsappConnected = (connectedNumber: string) => {
+    setWhatsappStatus({
+      state: 'CONNECTED',
+      connectedNumber,
+      lastConnectedAt: new Date().toISOString(),
+    });
+    setConnectOpen(false);
+  };
+
+  const hasWhatsappChannelSelected = selectedSupplierIds.some(
+    (supplierId) => supplierChannels[supplierId] === 'WHATSAPP',
+  );
 
   // Get categories of selected products
   const selectedProductCategoryIds = Array.from(
@@ -208,12 +275,19 @@ export const QuotationForm: React.FC = () => {
         await api.post(`/quotations/${quotationId}/suppliers`, {
           supplierIds: selectedSupplierIds,
         });
+
+        for (const supplierId of selectedSupplierIds) {
+          const channel = supplierChannels[supplierId] || 'EMAIL';
+          await api.patch(`/quotations/${quotationId}/suppliers/${supplierId}/channel`, {
+            channel,
+          });
+        }
       }
 
       // 4. Publish if requested
       if (shouldPublish) {
         await api.post(`/quotations/${quotationId}/publish`);
-        toast.success('Cotação criada e publicada com sucesso! Os convites por e-mail foram enviados.');
+        toast.success('Cotação criada e publicada! Os convites foram enviados aos fornecedores.');
       } else {
         toast.success('Cotação salva como rascunho com sucesso.');
       }
@@ -430,6 +504,44 @@ export const QuotationForm: React.FC = () => {
                 </label>
               </div>
 
+              <p className="quotation-suppliers-intro" style={{ marginTop: 'var(--space-3)' }}>
+                Para cada fornecedor selecionado, escolha o canal de envio do convite antes de publicar.
+              </p>
+
+              {hasWhatsappChannelSelected && !isPro && (
+                <div className="quotation-channel-notice quotation-channel-notice--plan" role="status" style={{ marginTop: 'var(--space-4)' }}>
+                  <AlertTriangle size={18} aria-hidden="true" />
+                  <div>
+                    <p>
+                      O envio por WhatsApp está disponível no plano Pro. Fornecedores com canal WhatsApp
+                      receberão o convite por e-mail até você fazer upgrade.
+                    </p>
+                    <Link to="/dashboard/settings" className="quotation-channel-notice-link">
+                      Ver configurações e planos
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {hasWhatsappChannelSelected && isPro && whatsappStatus?.state !== 'CONNECTED' && (
+                <div className="quotation-channel-notice quotation-channel-notice--session" role="status" style={{ marginTop: 'var(--space-4)' }}>
+                  <MessageCircle size={18} aria-hidden="true" />
+                  <div>
+                    <p>
+                      Conecte seu WhatsApp para enviar convites por este canal. Enquanto não conectar,
+                      o sistema usará e-mail automaticamente.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setConnectOpen(true)}
+                    >
+                      Conectar WhatsApp
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {displayedSuppliers.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)', marginTop: '16px' }}>
                   <Users size={32} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
@@ -457,16 +569,35 @@ export const QuotationForm: React.FC = () => {
                         className={`supplier-checkbox-card ${isSelected ? 'selected' : ''}`}
                         onClick={() => handleToggleSupplier(supplier.id)}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}} // Handled by div onClick
-                          style={{ marginTop: '3px', pointerEvents: 'none' }}
-                        />
-                        <div className="supplier-card-info">
-                          <span className="supplier-card-name">{supplier.name}</span>
-                          <span className="supplier-card-email">{supplier.email}</span>
+                        <div className="supplier-card-main">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{ marginTop: '3px', pointerEvents: 'none' }}
+                          />
+                          <div className="supplier-card-info">
+                            <span className="supplier-card-name">{supplier.name}</span>
+                            <span className="supplier-card-email">{supplier.email}</span>
+                          </div>
                         </div>
+
+                        {isSelected && (
+                          <div
+                            className="supplier-card-channel"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <span className="supplier-card-channel-label">Canal de envio</span>
+                            <SupplierChannelToggle
+                              supplierName={supplier.name}
+                              phone={supplier.phone}
+                              channel={supplierChannels[supplier.id] || supplier.preferredChannel || 'EMAIL'}
+                              onChange={(channel) => handleSupplierChannelChange(supplier.id, channel)}
+                              isPro={isPro}
+                              whatsappStatus={whatsappStatus}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -533,6 +664,12 @@ export const QuotationForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      <WhatsappConnectModal
+        isOpen={connectOpen}
+        onClose={() => setConnectOpen(false)}
+        onConnected={handleWhatsappConnected}
+      />
     </div>
   );
 };
