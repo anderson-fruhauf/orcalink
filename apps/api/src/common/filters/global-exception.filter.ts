@@ -54,7 +54,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorName = mapErrorLabel(statusCode, exception.name);
     }
 
-    if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (statusCode === 500) {
       message = INTERNAL_ERROR_MESSAGE;
     }
 
