@@ -33,6 +33,7 @@ export class SupplierService {
           contactName: dto.contactName || null,
           email: dto.email,
           phone: dto.phone || null,
+          preferredChannel: dto.preferredChannel || 'EMAIL',
         },
       });
 
@@ -178,6 +179,10 @@ export class SupplierService {
             dto.contactName !== undefined ? dto.contactName : undefined,
           email: dto.email,
           phone: dto.phone !== undefined ? dto.phone : undefined,
+          preferredChannel:
+            dto.preferredChannel !== undefined
+              ? dto.preferredChannel
+              : undefined,
         },
       });
 

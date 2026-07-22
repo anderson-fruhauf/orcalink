@@ -24,6 +24,11 @@ enum SupplierResponseStatus {
   EXPIRED
 }
 
+enum DispatchChannel {
+  EMAIL
+  WHATSAPP
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -82,15 +87,16 @@ model Product {
 }
 
 model Supplier {
-  id          String   @id @default(uuid())
-  tenantId    String
-  name        String
-  document    String?
-  contactName String?
-  email       String
-  phone       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String          @id @default(uuid())
+  tenantId         String
+  name             String
+  document         String?
+  contactName      String?
+  email            String
+  phone            String?
+  preferredChannel DispatchChannel @default(EMAIL)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   tenant     Tenant              @relation(fields: [tenantId], references: [id])
   categories SupplierCategory[]

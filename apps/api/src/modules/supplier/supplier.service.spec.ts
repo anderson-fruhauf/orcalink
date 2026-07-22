@@ -113,6 +113,7 @@ describe('SupplierService', () => {
           contactName: createDto.contactName,
           email: createDto.email,
           phone: createDto.phone,
+          preferredChannel: 'EMAIL',
         },
       });
       expect(prismaService.supplierCategory.createMany).toHaveBeenCalledWith({
@@ -123,6 +124,25 @@ describe('SupplierService', () => {
       });
       expect(result).toBeDefined();
       expect(result.id).toBe('supp-1');
+    });
+
+    it('should persist preferredChannel as WHATSAPP when informed', async () => {
+      prismaService.category.findMany.mockResolvedValue([]);
+      prismaService.supplier.create.mockResolvedValue({ id: 'supp-2' });
+      prismaService.supplier.findUnique.mockResolvedValue({
+        id: 'supp-2',
+        preferredChannel: 'WHATSAPP',
+      });
+
+      await service.create({
+        name: 'Fornecedor B',
+        email: 'fornecedor.b@email.com',
+        preferredChannel: 'WHATSAPP',
+      });
+
+      expect(prismaService.supplier.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ preferredChannel: 'WHATSAPP' }),
+      });
     });
   });
 
@@ -251,6 +271,7 @@ describe('SupplierService', () => {
           contactName: undefined,
           email: undefined,
           phone: undefined,
+          preferredChannel: undefined,
         },
       });
       expect(prismaService.supplierCategory.deleteMany).toHaveBeenCalledWith({
@@ -258,6 +279,18 @@ describe('SupplierService', () => {
       });
       expect(prismaService.supplierCategory.createMany).toHaveBeenCalledWith({
         data: [{ supplierId: 'supp-1', categoryId: 'cat-2' }],
+      });
+    });
+
+    it('should update preferredChannel when informed', async () => {
+      prismaService.supplier.findUnique.mockResolvedValue({ id: 'supp-1' });
+      prismaService.supplier.update.mockResolvedValue({ id: 'supp-1' });
+
+      await service.update('supp-1', { preferredChannel: 'WHATSAPP' });
+
+      expect(prismaService.supplier.update).toHaveBeenCalledWith({
+        where: { id: 'supp-1' },
+        data: expect.objectContaining({ preferredChannel: 'WHATSAPP' }),
       });
     });
   });

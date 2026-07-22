@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Pencil, Trash2, AlertTriangle, Users, ChevronDown } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, AlertTriangle, Users, ChevronDown, Mail, MessageCircle } from 'lucide-react';
 import api from '../lib/api.js';
 import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
@@ -20,6 +20,8 @@ interface SupplierCategory {
   };
 }
 
+type DispatchChannel = 'EMAIL' | 'WHATSAPP';
+
 interface Supplier {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ interface Supplier {
   contactName?: string;
   email: string;
   phone?: string;
+  preferredChannel?: DispatchChannel;
   createdAt: string;
   categories?: SupplierCategory[];
 }
@@ -132,6 +135,23 @@ export const Suppliers: React.FC = () => {
       toast.error(getApiErrorMessage(error, 'Erro ao excluir fornecedor.'));
       setDeletingSupplier(null);
     }
+  };
+
+  const renderChannelBadge = (channel?: DispatchChannel) => {
+    if (channel === 'WHATSAPP') {
+      return (
+        <span className="channel-badge channel-badge-whatsapp" title="Canal preferido: WhatsApp">
+          <MessageCircle size={12} strokeWidth={1.5} />
+          WhatsApp
+        </span>
+      );
+    }
+    return (
+      <span className="channel-badge channel-badge-email" title="Canal preferido: E-mail">
+        <Mail size={12} strokeWidth={1.5} />
+        E-mail
+      </span>
+    );
   };
 
   const skeletonRows = Array.from({ length: 5 });
@@ -288,6 +308,9 @@ export const Suppliers: React.FC = () => {
                             {formatPhone(supplier.phone)}
                           </span>
                         )}
+                        <div style={{ marginTop: 'var(--space-2)' }}>
+                          {renderChannelBadge(supplier.preferredChannel)}
+                        </div>
                       </div>
                     </td>
                     <td>
