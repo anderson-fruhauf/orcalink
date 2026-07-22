@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { X, ChevronDown, ArrowLeft } from 'lucide-react';
+import { X, ChevronDown, ArrowLeft, Mail, MessageCircle } from 'lucide-react';
 import api from '../lib/api.js';
 import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
@@ -19,6 +19,8 @@ interface SupplierCategory {
   };
 }
 
+type DispatchChannel = 'EMAIL' | 'WHATSAPP';
+
 interface SupplierResponse {
   id: string;
   name: string;
@@ -26,6 +28,7 @@ interface SupplierResponse {
   contactName?: string;
   email: string;
   phone?: string;
+  preferredChannel?: DispatchChannel;
   categories?: SupplierCategory[];
 }
 
@@ -39,6 +42,7 @@ export const SupplierForm: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [preferredChannel, setPreferredChannel] = useState<DispatchChannel>('EMAIL');
   
   // Selected categories state (array of Category objects)
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
@@ -88,6 +92,7 @@ export const SupplierForm: React.FC = () => {
       setContactName(data.contactName || '');
       setEmail(data.email || '');
       setPhone(data.phone ? formatPhone(data.phone) : '');
+      setPreferredChannel(data.preferredChannel || 'EMAIL');
       
       if (data.categories) {
         setSelectedCategories(data.categories.map((sc) => sc.category));
@@ -150,6 +155,7 @@ export const SupplierForm: React.FC = () => {
       contactName: contactName.trim() || undefined,
       email: email.trim(),
       phone: rawPhone || undefined,
+      preferredChannel,
       categoryIds,
     };
 
@@ -288,6 +294,33 @@ export const SupplierForm: React.FC = () => {
                 value={phone}
                 onChange={handlePhoneChange}
               />
+            </div>
+
+            <div className="form-group form-group-full">
+              <label className="form-label">Canal de Envio Preferido</label>
+              <div className="channel-toggle channel-toggle--inline" role="group" aria-label="Canal de envio preferido">
+                <button
+                  type="button"
+                  className={`channel-toggle-option ${preferredChannel === 'EMAIL' ? 'active active-email' : ''}`}
+                  onClick={() => setPreferredChannel('EMAIL')}
+                  aria-pressed={preferredChannel === 'EMAIL'}
+                >
+                  <Mail size={16} strokeWidth={1.5} />
+                  <span>E-mail</span>
+                </button>
+                <button
+                  type="button"
+                  className={`channel-toggle-option ${preferredChannel === 'WHATSAPP' ? 'active active-whatsapp' : ''}`}
+                  onClick={() => setPreferredChannel('WHATSAPP')}
+                  aria-pressed={preferredChannel === 'WHATSAPP'}
+                >
+                  <MessageCircle size={16} strokeWidth={1.5} />
+                  <span>WhatsApp</span>
+                </button>
+              </div>
+              <p className="form-hint">
+                Define o canal padrão usado para enviar as cotações a este fornecedor. Pode ser alterado por cotação antes do envio.
+              </p>
             </div>
 
             <div className="form-group form-group-full">

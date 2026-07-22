@@ -9,7 +9,9 @@ export class RegisterDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(2, { message: 'O nome da empresa deve ter no mínimo 2 caracteres.' })
+  @MinLength(2, {
+    message: 'O nome da empresa deve ter no mínimo 2 caracteres.',
+  })
   @MaxLength(255, {
     message: 'O nome da empresa deve ter no máximo 255 caracteres.',
   })

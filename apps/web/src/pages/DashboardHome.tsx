@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, Package, Clock } from 'lucide-react';
+import { FileText, Users, Package, Clock, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import api from '../lib/api.js';
+import { fetchWhatsappStatus, type WhatsappStatus } from '../lib/whatsapp.js';
 import toast from 'react-hot-toast';
 
 interface DashboardStats {
@@ -15,8 +16,11 @@ interface DashboardStats {
 export const DashboardHome: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isPro = user?.tenant?.plan === 'PRO';
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsappStatus | null>(null);
+  const [whatsappLoading, setWhatsappLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -35,7 +39,55 @@ export const DashboardHome: React.FC = () => {
     fetchStats();
   }, []);
 
+  useEffect(() => {
+    if (!isPro) {
+      setWhatsappLoading(false);
+      return;
+    }
+
+    fetchWhatsappStatus()
+      .then(setWhatsappStatus)
+      .catch(() =>
+        setWhatsappStatus({
+          state: 'DISCONNECTED',
+          connectedNumber: null,
+          lastConnectedAt: null,
+        }),
+      )
+      .finally(() => setWhatsappLoading(false));
+  }, [isPro]);
+
   const name = user?.backendUser?.name || user?.firebaseUser?.displayName || 'Usuário';
+
+  const getWhatsappStatusLabel = (): string => {
+    if (!isPro) return 'Pro';
+
+    switch (whatsappStatus?.state) {
+      case 'CONNECTED':
+        return 'Conectado';
+      case 'QR_PENDING':
+        return 'Pendente';
+      case 'ERROR':
+        return 'Erro';
+      default:
+        return 'Desconectado';
+    }
+  };
+
+  const getWhatsappDescription = (): string => {
+    if (!isPro) {
+      return 'Disponível no plano Pro';
+    }
+
+    if (whatsappStatus?.state === 'CONNECTED') {
+      return 'Número vinculado ao Orçalink';
+    }
+
+    return 'Integração não configurada';
+  };
+
+  const showWhatsappPulse =
+    isPro && whatsappStatus?.state !== 'CONNECTED' && whatsappStatus?.state !== 'QR_PENDING';
 
   const kpis = [
     {
@@ -111,10 +163,34 @@ export const DashboardHome: React.FC = () => {
             </div>
           </div>
         ))}
+        <div
+          className="kpi-card"
+          onClick={() => navigate('/dashboard/settings')}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/settings')}
+        >
+          <div className="kpi-card-header">
+            <span className="kpi-card-label">WhatsApp</span>
+            <div className="kpi-card-icon success">
+              <MessageCircle />
+            </div>
+          </div>
+          {whatsappLoading ? (
+            <div className="skeleton skeleton-value" style={{ marginTop: '4px' }} />
+          ) : (
+            <div className="kpi-card-value kpi-card-value--status">
+              {getWhatsappStatusLabel()}
+              {showWhatsappPulse && <span className="pulse-dot" />}
+            </div>
+          )}
+          <div className="kpi-card-description">{getWhatsappDescription()}</div>
+          <span className="kpi-card-link">Configurar</span>
+        </div>
       </div>
 
-      {/* Placeholder Details Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-8)' }}>
+      {/* Details Section */}
+      <div className="dashboard-details-grid">
         <div className="card">
           <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileText size={18} style={{ color: 'var(--primary-500)' }} />

@@ -350,9 +350,7 @@ describe('PortalService', () => {
 
       await expect(
         service.submitProposal('submit-token', invalidDto),
-      ).rejects.toThrow(
-        new BadRequestException('Item inválido na proposta.'),
-      );
+      ).rejects.toThrow(new BadRequestException('Item inválido na proposta.'));
     });
 
     it('should throw BadRequestException if pricing is missing and not marked as unavailable', async () => {

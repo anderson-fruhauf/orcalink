@@ -14,6 +14,7 @@ import { QuotationModule } from './modules/quotation/quotation.module.js';
 import { PortalModule } from './modules/portal/portal.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { MailModule } from './modules/mail/mail.module.js';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 
@@ -35,6 +36,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter.
     QuotationModule,
     PortalModule,
     MailModule,
+    WhatsappModule,
   ],
   controllers: [AppController],
   providers: [

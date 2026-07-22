@@ -12,12 +12,15 @@ import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
 import { createHmac } from 'crypto';
 import { MailService } from '../mail/mail.service.js';
+import { WhatsappService } from '../whatsapp/whatsapp.service.js';
+import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
 
 @Injectable()
 export class QuotationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async create(dto: CreateQuotationDto): Promise<Quotation> {
@@ -222,8 +225,10 @@ export class QuotationService {
       );
     }
 
+    let suppliers: Array<{ id: string; preferredChannel: string }> = [];
+
     if (dto.supplierIds.length > 0) {
-      const suppliers = await this.prisma.supplier.findMany({
+      suppliers = await this.prisma.supplier.findMany({
         where: { id: { in: dto.supplierIds } },
       });
       if (suppliers.length !== dto.supplierIds.length) {
@@ -243,6 +248,9 @@ export class QuotationService {
           data: dto.supplierIds.map((supplierId) => ({
             quotationId: id,
             supplierId,
+            channel:
+              suppliers.find((supplier) => supplier.id === supplierId)
+                ?.preferredChannel || 'EMAIL',
           })),
         });
       }
@@ -257,6 +265,48 @@ export class QuotationService {
           },
         },
       });
+    });
+  }
+
+  async updateSupplierChannel(
+    quotationId: string,
+    supplierId: string,
+    dto: UpdateQuotationSupplierChannelDto,
+  ) {
+    const quotation = await this.findOne(quotationId);
+    if (quotation.status !== 'DRAFT') {
+      throw new BadRequestException(
+        'O canal de envio só pode ser alterado antes da publicação.',
+      );
+    }
+
+    const association = await this.prisma.quotationSupplier.findUnique({
+      where: {
+        quotationId_supplierId: {
+          quotationId,
+          supplierId,
+        },
+      },
+    });
+
+    if (!association) {
+      throw new NotFoundException('Fornecedor não associado a esta cotação.');
+    }
+
+    return this.prisma.quotationSupplier.update({
+      where: { id: association.id },
+      data: { channel: dto.channel },
+      include: {
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            contactName: true,
+          },
+        },
+      },
     });
   }
 
@@ -331,12 +381,13 @@ export class QuotationService {
 
         return updated;
       },
-    )) as Promise<Quotation>;
+    )) as Quotation;
 
-    // 2. Queue email jobs for each associated supplier after successful transaction
-    for (const qs of quotation.suppliers) {
-      await this.mailService.sendEmail(qs.id);
-    }
+    await this.dispatchQuotationInvites(
+      id,
+      quotation.tenantId,
+      quotation.suppliers,
+    );
 
     return updatedQuotation;
   }
@@ -373,10 +424,41 @@ export class QuotationService {
     // Verify monthly email limit for 1 email resend
     await this.mailService.checkEmailLimit(qs.quotation.tenantId, 1);
 
-    // Queue email job
-    await this.mailService.sendEmail(qs.id);
+    await this.dispatchQuotationInvites(id, qs.quotation.tenantId, [qs]);
 
     return { success: true };
+  }
+
+  private async dispatchQuotationInvites(
+    quotationId: string,
+    tenantId: string,
+    suppliers: Array<{ id: string; channel?: string }>,
+  ): Promise<void> {
+    const whatsappSuppliers = suppliers.filter(
+      (supplier) => supplier.channel === 'WHATSAPP',
+    );
+    const emailSuppliers = suppliers.filter(
+      (supplier) => supplier.channel !== 'WHATSAPP',
+    );
+
+    let fallbackIds = new Set<string>();
+
+    if (whatsappSuppliers.length > 0) {
+      const whatsappResult = await this.whatsappService.sendQuotationMessages(
+        tenantId,
+        quotationId,
+        whatsappSuppliers.map((supplier) => supplier.id),
+      );
+      fallbackIds = new Set(whatsappResult.fallbackToEmail);
+    }
+
+    for (const supplier of emailSuppliers) {
+      await this.mailService.sendEmail(supplier.id);
+    }
+
+    for (const supplierId of fallbackIds) {
+      await this.mailService.sendEmail(supplierId);
+    }
   }
 
   async close(id: string): Promise<Quotation> {

@@ -20,6 +20,8 @@ const MODELS_WITH_TENANT = [
   'Product',
   'Supplier',
   'Quotation',
+  'WhatsappSession',
+  'WhatsappAuthKey',
 ];
 
 /**
@@ -132,6 +134,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
   get proposalItem() {
     return this._extendedClient.proposalItem;
+  }
+  get whatsappSession() {
+    return this._extendedClient.whatsappSession;
+  }
+  get whatsappAuthKey() {
+    return this._extendedClient.whatsappAuthKey;
   }
 
   // ─── $transaction delega para o extended client ──────────────────

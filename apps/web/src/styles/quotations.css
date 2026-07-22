@@ -336,23 +336,40 @@
 /* Step 3 styling: Supplier list */
 .wizard-suppliers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-4);
-  max-height: 300px;
+  max-height: 420px;
   overflow-y: auto;
   padding-right: var(--space-2);
 }
 
 .supplier-checkbox-card {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.supplier-card-channel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.supplier-card-channel-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .supplier-checkbox-card:hover {
@@ -363,6 +380,12 @@
 .supplier-checkbox-card.selected {
   border-color: var(--primary-300);
   background: var(--primary-50);
+}
+
+.supplier-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
 }
 
 .supplier-card-info {
@@ -607,4 +630,84 @@
   background: #e8faf0 !important;
   color: #25D366 !important;
   border-color: #a3ecc5 !important;
+}
+
+/* ===== Dispatch Channel (Quotation Detail) ===== */
+.quotation-channel-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--text-body);
+}
+
+.quotation-channel-notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.quotation-channel-notice p {
+  margin: 0 0 var(--space-2);
+  line-height: 1.5;
+}
+
+.quotation-channel-notice--plan {
+  background: var(--warning-50);
+  border-color: var(--warning-200);
+  color: var(--warning-800);
+}
+
+.quotation-channel-notice--plan svg {
+  color: var(--warning-600);
+}
+
+.quotation-channel-notice--session {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+}
+
+.quotation-channel-notice--session svg {
+  color: var(--primary-600);
+}
+
+.quotation-channel-notice-link {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--primary-600);
+  text-decoration: none;
+}
+
+.quotation-channel-notice-link:hover {
+  text-decoration: underline;
+}
+
+.quotation-dispatch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+.quotation-dispatch-badge--whatsapp {
+  color: var(--success-700);
+}
+
+.quotation-dispatch-fallback {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--warning-700);
+}
+
+.quotation-suppliers-intro {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
 }

@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Package, Users, FileText, Send, Lock, Copy, Trash2, Plus, Mail, AlertTriangle, MoreVertical, Link2 } from 'lucide-react';
+import { ArrowLeft, Package, Users, FileText, Send, Lock, Copy, Trash2, Plus, Mail, AlertTriangle, MoreVertical, Link2, MessageCircle } from 'lucide-react';
 import api from '../lib/api.js';
 import { getApiErrorMessage } from '../lib/errors.js';
+import { fetchWhatsappStatus, type WhatsappStatus } from '../lib/whatsapp.js';
 import toast from 'react-hot-toast';
 import { Modal } from '../components/Modal.js';
+import { SupplierChannelToggle } from '../components/SupplierChannelToggle.js';
+import { WhatsappConnectModal } from '../components/WhatsappConnectModal.js';
+import { useAuth } from '../hooks/useAuth.js';
 import '../styles/quotations.css';
+import '../styles/suppliers.css';
+import '../styles/settings.css';
+
+type DispatchChannel = 'EMAIL' | 'WHATSAPP';
 
 interface Product {
   id: string;
@@ -38,8 +46,11 @@ interface QuotationItem {
 interface QuotationSupplier {
   id: string;
   supplierId: string;
+  channel?: DispatchChannel;
   responseStatus: 'PENDING' | 'SUBMITTED' | 'EXPIRED';
   sentAt: string;
+  whatsappSentAt?: string | null;
+  whatsappError?: string | null;
   supplier: Supplier;
 }
 
@@ -99,6 +110,21 @@ Acesse pelo link: ${inviteUrl}
 Obrigado!`;
 }
 
+function getDispatchInfo(qs: QuotationSupplier): {
+  channel: DispatchChannel;
+  fallback: boolean;
+} {
+  if (qs.whatsappSentAt) {
+    return { channel: 'WHATSAPP', fallback: false };
+  }
+
+  if (qs.channel === 'WHATSAPP' && qs.whatsappError) {
+    return { channel: 'EMAIL', fallback: true };
+  }
+
+  return { channel: qs.channel || 'EMAIL', fallback: false };
+}
+
 function getSupplierInviteData(quotation: QuotationDetailResponse, supplierId: string) {
   const qs = quotation.suppliers?.find((s) => s.supplierId === supplierId);
   if (!qs) return null;
@@ -115,6 +141,8 @@ function getSupplierInviteData(quotation: QuotationDetailResponse, supplierId: s
 export const QuotationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isPro = user?.tenant?.plan === 'PRO';
 
   const [quotation, setQuotation] = useState<QuotationDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,6 +162,9 @@ export const QuotationDetail: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [openMenuSupplierId, setOpenMenuSupplierId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsappStatus | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [channelUpdatingId, setChannelUpdatingId] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch quotation details
@@ -175,6 +206,29 @@ export const QuotationDetail: React.FC = () => {
       fetchExtraData();
     }
   }, [quotation?.status, fetchExtraData]);
+
+  const loadWhatsappStatus = useCallback(async () => {
+    if (!isPro) {
+      setWhatsappStatus(null);
+      return;
+    }
+
+    try {
+      const data = await fetchWhatsappStatus();
+      setWhatsappStatus(data);
+    } catch {
+      setWhatsappStatus({
+        state: 'DISCONNECTED',
+        connectedNumber: null,
+        lastConnectedAt: null,
+      });
+    }
+  }, [isPro]);
+
+  useEffect(() => {
+    if (quotation?.status !== 'DRAFT') return;
+    void loadWhatsappStatus();
+  }, [quotation?.status, loadWhatsappStatus]);
 
   const closeSupplierMenu = useCallback(() => {
     setOpenMenuSupplierId(null);
@@ -245,7 +299,7 @@ export const QuotationDetail: React.FC = () => {
     try {
       setActionLoading(true);
       await api.post(`/quotations/${quotation.id}/publish`);
-      toast.success('Cotação publicada! Os e-mails de convite foram enviados.');
+      toast.success('Cotação publicada! Os convites foram enviados aos fornecedores.');
       fetchQuotationDetails();
     } catch (error: any) {
       toast.error(getApiErrorMessage(error, 'Erro ao publicar cotação.'));
@@ -355,6 +409,48 @@ export const QuotationDetail: React.FC = () => {
     }
   };
 
+  const handleChannelChange = async (
+    supplierId: string,
+    channel: DispatchChannel,
+  ) => {
+    if (!quotation) return;
+
+    const current = quotation.suppliers.find((s) => s.supplierId === supplierId);
+    if (!current || (current.channel || 'EMAIL') === channel) return;
+
+    try {
+      setChannelUpdatingId(supplierId);
+      const response = await api.patch<QuotationSupplier>(
+        `/quotations/${quotation.id}/suppliers/${supplierId}/channel`,
+        { channel },
+      );
+
+      setQuotation((prev) =>
+        prev
+          ? {
+              ...prev,
+              suppliers: prev.suppliers.map((qs) =>
+                qs.supplierId === supplierId ? { ...qs, ...response.data } : qs,
+              ),
+            }
+          : prev,
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Erro ao alterar canal de envio.'));
+    } finally {
+      setChannelUpdatingId(null);
+    }
+  };
+
+  const handleWhatsappConnected = (connectedNumber: string) => {
+    setWhatsappStatus({
+      state: 'CONNECTED',
+      connectedNumber,
+      lastConnectedAt: new Date().toISOString(),
+    });
+    setConnectOpen(false);
+  };
+
   // Active/Open Actions: Suppliers
   const handleCopyInviteMessage = (supplierId: string) => {
     if (!quotation) return;
@@ -410,19 +506,59 @@ export const QuotationDetail: React.FC = () => {
     closeSupplierMenu();
   };
 
-  const handleResendEmail = async (supplierId: string) => {
+  const handleResendInvite = async (supplierId: string) => {
     if (!quotation) return;
     try {
-      toast.loading('Enviando e-mail...');
+      toast.loading('Reenviando convite...');
       await api.post(`/quotations/${quotation.id}/resend/${supplierId}`);
       toast.dismiss();
-      toast.success('E-mail de convite reenviado com sucesso!');
+      toast.success('Convite reenviado com sucesso!');
       closeSupplierMenu();
+      fetchQuotationDetails();
     } catch (error: any) {
       toast.dismiss();
-      toast.error(getApiErrorMessage(error, 'Erro ao reenviar e-mail.'));
+      toast.error(getApiErrorMessage(error, 'Erro ao reenviar convite.'));
     }
   };
+
+  const renderDispatchBadge = (qs: QuotationSupplier) => {
+    const dispatch = getDispatchInfo(qs);
+
+    if (dispatch.channel === 'WHATSAPP') {
+      return (
+        <span className="quotation-dispatch-badge quotation-dispatch-badge--whatsapp">
+          <MessageCircle size={14} strokeWidth={1.5} aria-hidden="true" />
+          WhatsApp
+        </span>
+      );
+    }
+
+    return (
+      <div>
+        <span className="quotation-dispatch-badge">
+          <Mail size={14} strokeWidth={1.5} aria-hidden="true" />
+          E-mail
+        </span>
+        {dispatch.fallback && (
+          <span className="quotation-dispatch-fallback">
+            Enviado por e-mail (fallback)
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderChannelToggle = (qs: QuotationSupplier) => (
+    <SupplierChannelToggle
+      supplierName={qs.supplier?.name || 'Fornecedor'}
+      phone={qs.supplier?.phone}
+      channel={qs.channel || 'EMAIL'}
+      onChange={(channel) => handleChannelChange(qs.supplierId, channel)}
+      isPro={isPro}
+      whatsappStatus={whatsappStatus}
+      disabled={channelUpdatingId === qs.supplierId}
+    />
+  );
 
   // Calculate proposal totals
   const getProposalTotal = (proposal: Proposal) => {
@@ -479,6 +615,9 @@ export const QuotationDetail: React.FC = () => {
   const isDraft = quotation.status === 'DRAFT';
   const isOpen = quotation.status === 'OPEN';
   const isClosed = quotation.status === 'CLOSED';
+  const hasWhatsappSuppliers = quotation.suppliers.some(
+    (qs) => (qs.channel || 'EMAIL') === 'WHATSAPP',
+  );
   const openMenuSupplier = openMenuSupplierId
     ? quotation.suppliers.find((s) => s.supplierId === openMenuSupplierId)
     : undefined;
@@ -711,9 +850,9 @@ export const QuotationDetail: React.FC = () => {
             {isDraft && (
               <div style={{ marginBottom: 'var(--space-6)' }}>
                 {!isEditingSuppliers ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                      Estes fornecedores receberão convites por e-mail para propor preços quando a cotação for publicada.
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)' }}>
+                    <p className="quotation-suppliers-intro">
+                      Estes fornecedores receberão convites pelo canal configurado abaixo quando a cotação for publicada.
                     </p>
                     <button className="btn-secondary" onClick={() => setIsEditingSuppliers(true)}>
                       Gerenciar Fornecedores
@@ -760,6 +899,40 @@ export const QuotationDetail: React.FC = () => {
               </div>
             )}
 
+            {isDraft && hasWhatsappSuppliers && !isPro && (
+              <div className="quotation-channel-notice quotation-channel-notice--plan" role="status">
+                <AlertTriangle size={18} aria-hidden="true" />
+                <div>
+                  <p>
+                    O envio por WhatsApp está disponível no plano Pro. Fornecedores com canal WhatsApp
+                    receberão o convite por e-mail até você fazer upgrade.
+                  </p>
+                  <Link to="/dashboard/settings" className="quotation-channel-notice-link">
+                    Ver configurações e planos
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {isDraft && hasWhatsappSuppliers && isPro && whatsappStatus?.state !== 'CONNECTED' && !isEditingSuppliers && (
+              <div className="quotation-channel-notice quotation-channel-notice--session" role="status">
+                <MessageCircle size={18} aria-hidden="true" />
+                <div>
+                  <p>
+                    Conecte seu WhatsApp para enviar convites por este canal. Enquanto não conectar,
+                    o sistema usará e-mail automaticamente.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setConnectOpen(true)}
+                  >
+                    Conectar WhatsApp
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* List of associated suppliers (read-only if not editing draft) */}
             {(!isDraft || !isEditingSuppliers) && (
               quotation.suppliers.length === 0 ? (
@@ -778,6 +951,7 @@ export const QuotationDetail: React.FC = () => {
                         <th>Fornecedor</th>
                         <th>Contato</th>
                         <th>E-mail</th>
+                        <th>Canal de envio</th>
                         <th>Status Convite</th>
                         {!isDraft && <th className="th-actions" style={{ width: '80px' }}>Ações</th>}
                       </tr>
@@ -788,6 +962,9 @@ export const QuotationDetail: React.FC = () => {
                           <td className="td-name">{qs.supplier?.name}</td>
                           <td>{qs.supplier?.contactName || '-'}</td>
                           <td>{qs.supplier?.email}</td>
+                          <td>
+                            {isDraft ? renderChannelToggle(qs) : renderDispatchBadge(qs)}
+                          </td>
                           <td>{getSupplierResponseBadge(qs.responseStatus)}</td>
                           {!isDraft && (
                             <td className="td-actions">
@@ -936,10 +1113,10 @@ export const QuotationDetail: React.FC = () => {
               type="button"
               className="action-menu-item"
               role="menuitem"
-              onClick={() => handleResendEmail(openMenuSupplierId)}
+              onClick={() => handleResendInvite(openMenuSupplierId)}
             >
-              <Mail size={14} />
-              Reenviar e-mail
+              <Send size={14} />
+              Reenviar convite
             </button>
           )}
         </div>,
@@ -980,6 +1157,12 @@ export const QuotationDetail: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      <WhatsappConnectModal
+        isOpen={connectOpen}
+        onClose={() => setConnectOpen(false)}
+        onConnected={handleWhatsappConnected}
+      />
     </div>
   );
 };

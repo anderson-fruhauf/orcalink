@@ -18,6 +18,7 @@ import { UpdateQuotationDto } from './dto/update-quotation.dto.js';
 import { QueryQuotationDto } from './dto/query-quotation.dto.js';
 import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
+import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
 import { FirebaseAuthGuard } from '../../firebase/firebase-auth.guard.js';
 import { PlanLimitGuard } from '../../common/guards/plan-limit.guard.js';
 import { CheckPlanLimit } from '../../common/decorators/check-plan-limit.decorator.js';
@@ -80,6 +81,15 @@ export class QuotationController {
     @Body() associateSuppliersDto: AssociateSuppliersDto,
   ) {
     return this.quotationService.associateSuppliers(id, associateSuppliersDto);
+  }
+
+  @Patch(':id/suppliers/:supplierId/channel')
+  async updateSupplierChannel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('supplierId', ParseUUIDPipe) supplierId: string,
+    @Body() dto: UpdateQuotationSupplierChannelDto,
+  ) {
+    return this.quotationService.updateSupplierChannel(id, supplierId, dto);
   }
 
   @Post(':id/publish')

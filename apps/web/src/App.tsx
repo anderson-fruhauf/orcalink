@@ -17,6 +17,7 @@ import { Quotations } from './pages/Quotations.js';
 import { QuotationForm } from './pages/QuotationForm.js';
 import { QuotationDetail } from './pages/QuotationDetail.js';
 import { PortalFornecedor } from './pages/PortalFornecedor.js';
+import { Settings } from './pages/Settings.js';
 
 // Route wrapper for authenticated users
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -145,7 +146,7 @@ function App() {
             <Route path="suppliers/new" element={<SupplierForm />} />
             <Route path="suppliers/:id/edit" element={<SupplierForm />} />
             <Route path="categories" element={<Categories />} />
-            <Route path="settings" element={<div style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}><h2 style={{ color: 'var(--text-heading)', marginBottom: '8px' }}>Configurações</h2><p style={{ color: 'var(--text-muted)' }}>Ajuste as preferências e configurações de conta.</p></div>} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           
           {/* Public Supplier Portal Route */}
