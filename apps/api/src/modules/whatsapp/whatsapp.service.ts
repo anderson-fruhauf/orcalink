@@ -498,10 +498,16 @@ export class WhatsappService {
 
   private async assertWhatsappAccess(tenantId: string): Promise<void> {
     if (process.env['WHATSAPP_ENABLED'] !== 'true') {
+      this.logger.warn(
+        `WhatsApp unavailable: WHATSAPP_ENABLED=${process.env['WHATSAPP_ENABLED'] ?? '(unset)'}`,
+      );
       throw new ServiceUnavailableException(WHATSAPP_DISABLED_MESSAGE);
     }
 
     if (!isWhatsappCryptoConfigured()) {
+      this.logger.warn(
+        'WhatsApp unavailable: WHATSAPP_CREDENTIALS_ENCRYPTION_KEY is not configured',
+      );
       throw new ServiceUnavailableException(WHATSAPP_DISABLED_MESSAGE);
     }
 
