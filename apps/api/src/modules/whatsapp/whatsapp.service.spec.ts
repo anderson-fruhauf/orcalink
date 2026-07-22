@@ -210,7 +210,9 @@ describe('WhatsappService', () => {
           const sock = {
             onWhatsApp: jest
               .fn()
-              .mockResolvedValue([{ exists: true, jid: '5511999999999@s.whatsapp.net' }]),
+              .mockResolvedValue([
+                { exists: true, jid: '5511999999999@s.whatsapp.net' },
+              ]),
             sendMessage: jest.fn().mockResolvedValue(undefined),
           };
           await fn(sock);

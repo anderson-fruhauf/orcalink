@@ -383,7 +383,11 @@ export class QuotationService {
       },
     )) as Quotation;
 
-    await this.dispatchQuotationInvites(id, quotation.tenantId, quotation.suppliers);
+    await this.dispatchQuotationInvites(
+      id,
+      quotation.tenantId,
+      quotation.suppliers,
+    );
 
     return updatedQuotation;
   }
@@ -420,11 +424,7 @@ export class QuotationService {
     // Verify monthly email limit for 1 email resend
     await this.mailService.checkEmailLimit(qs.quotation.tenantId, 1);
 
-    await this.dispatchQuotationInvites(
-      id,
-      qs.quotation.tenantId,
-      [qs],
-    );
+    await this.dispatchQuotationInvites(id, qs.quotation.tenantId, [qs]);
 
     return { success: true };
   }

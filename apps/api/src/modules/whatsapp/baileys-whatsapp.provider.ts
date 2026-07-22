@@ -79,7 +79,9 @@ function shouldPairReconnect(
   return isPairReconnectCode(statusCode);
 }
 
-function getDisconnectErrorMessage(lastDisconnect: unknown): string | undefined {
+function getDisconnectErrorMessage(
+  lastDisconnect: unknown,
+): string | undefined {
   return (lastDisconnect as { error?: Boom } | undefined)?.error?.message;
 }
 
@@ -98,7 +100,7 @@ function buildSocketConfig(
     markOnlineOnConnect: false,
     connectTimeoutMs: 20000,
     defaultQueryTimeoutMs: 60000,
-    getMessage: async () => undefined,
+    getMessage: () => Promise.resolve(undefined),
   };
 }
 
@@ -257,114 +259,114 @@ export class BaileysWhatsappProvider implements WhatsappProvider {
       );
 
       const startSocket = (): void => {
-        void (async () => {
-          if (settled || ensureNotAborted()) return;
+        if (settled || ensureNotAborted()) return;
 
-          if (Date.now() > deadline) {
-            fail(new Error('WHATSAPP_PAIR_TIMEOUT'));
-            return;
-          }
+        if (Date.now() > deadline) {
+          fail(new Error('WHATSAPP_PAIR_TIMEOUT'));
+          return;
+        }
 
-          cleanupCurrentSocket();
+        cleanupCurrentSocket();
 
-          const sock = makeWASocket(
-            buildSocketConfig(version, auth.state, this.baileysLogger),
-          );
-          currentSock = sock;
+        const sock = makeWASocket(
+          buildSocketConfig(version, auth.state, this.baileysLogger),
+        );
+        currentSock = sock;
 
-          sock.ev.on('creds.update', queueSaveCreds);
+        sock.ev.on('creds.update', queueSaveCreds);
 
-          sock.ev.on('connection.update', (update) => {
-            void (async () => {
-              const { connection, lastDisconnect, qr } = update;
+        sock.ev.on('connection.update', (update) => {
+          void (async () => {
+            const { connection, lastDisconnect, qr } = update;
 
-              if (qr) {
-                try {
-                  const QRCode = await import('qrcode');
-                  const qrBase64 = await QRCode.toDataURL(qr, {
-                    margin: 2,
-                    width: 280,
-                  });
-                  if (!qrEmitted) {
-                    qrEmitted = true;
-                    this.logger.log(`WhatsApp QR generated for tenant ${tenantId}`);
-                  } else {
-                    this.logger.warn(
-                      `WhatsApp emitted a new QR after scan for tenant ${tenantId}`,
-                    );
-                  }
-                  onQr(qrBase64);
-                } catch (error) {
-                  this.logger.error(
-                    'Failed to generate QR code image',
-                    error instanceof Error ? error.stack : String(error),
-                  );
-                }
-              }
-
-              if (connection === 'open') {
-                if (settled) return;
-                settled = true;
-                try {
-                  await saveAuthState();
-                  const connectedNumber = extractConnectedNumber(sock);
-                  cleanupCurrentSocket();
+            if (qr) {
+              try {
+                const QRCode = await import('qrcode');
+                const qrBase64 = await QRCode.toDataURL(qr, {
+                  margin: 2,
+                  width: 280,
+                });
+                if (!qrEmitted) {
+                  qrEmitted = true;
                   this.logger.log(
-                    `WhatsApp pair completed for tenant ${tenantId} (${connectedNumber})`,
+                    `WhatsApp QR generated for tenant ${tenantId}`,
                   );
-                  resolve({ connectedNumber });
-                } catch (error) {
-                  fail(toError(error));
+                } else {
+                  this.logger.warn(
+                    `WhatsApp emitted a new QR after scan for tenant ${tenantId}`,
+                  );
                 }
-              }
-
-              if (connection === 'close') {
-                if (settled) return;
-
-                const statusCode = getDisconnectStatusCode(lastDisconnect);
-                const reason = getDisconnectErrorMessage(lastDisconnect);
-                this.logger.warn(
-                  `WhatsApp pair connection closed (code: ${statusCode ?? 'unknown'}, reason: ${reason ?? 'n/a'}, qrScanned: ${qrEmitted})`,
+                onQr(qrBase64);
+              } catch (error) {
+                this.logger.error(
+                  'Failed to generate QR code image',
+                  error instanceof Error ? error.stack : String(error),
                 );
-
-                if (statusCode === DisconnectReason.loggedOut) {
-                  fail(new Error('WHATSAPP_LOGGED_OUT'));
-                  return;
-                }
-
-                if (statusCode === DisconnectReason.connectionReplaced) {
-                  fail(new Error('WHATSAPP_CONNECTION_REPLACED'));
-                  return;
-                }
-
-                if (statusCode === DisconnectReason.multideviceMismatch) {
-                  fail(new Error('WHATSAPP_MULTIDEVICE_MISMATCH'));
-                  return;
-                }
-
-                if (shouldPairReconnect(statusCode, qrEmitted)) {
-                  if (ensureNotAborted()) return;
-
-                  postScanReconnects += 1;
-                  if (postScanReconnects > maxPostScanReconnects) {
-                    fail(new Error('WHATSAPP_PAIR_RECONNECT_LIMIT'));
-                    return;
-                  }
-
-                  this.logger.log(
-                    `WhatsApp pair reconnecting for tenant ${tenantId} (attempt ${postScanReconnects})`,
-                  );
-                  await persistBeforeReconnect();
-                  onReconnecting?.();
-                  startSocket();
-                  return;
-                }
-
-                fail(new Error('WHATSAPP_CONNECTION_CLOSED'));
               }
-            })();
-          });
-        })();
+            }
+
+            if (connection === 'open') {
+              if (settled) return;
+              settled = true;
+              try {
+                await saveAuthState();
+                const connectedNumber = extractConnectedNumber(sock);
+                cleanupCurrentSocket();
+                this.logger.log(
+                  `WhatsApp pair completed for tenant ${tenantId} (${connectedNumber})`,
+                );
+                resolve({ connectedNumber });
+              } catch (error) {
+                fail(toError(error));
+              }
+            }
+
+            if (connection === 'close') {
+              if (settled) return;
+
+              const statusCode = getDisconnectStatusCode(lastDisconnect);
+              const reason = getDisconnectErrorMessage(lastDisconnect);
+              this.logger.warn(
+                `WhatsApp pair connection closed (code: ${statusCode ?? 'unknown'}, reason: ${reason ?? 'n/a'}, qrScanned: ${qrEmitted})`,
+              );
+
+              if (statusCode === DisconnectReason.loggedOut) {
+                fail(new Error('WHATSAPP_LOGGED_OUT'));
+                return;
+              }
+
+              if (statusCode === DisconnectReason.connectionReplaced) {
+                fail(new Error('WHATSAPP_CONNECTION_REPLACED'));
+                return;
+              }
+
+              if (statusCode === DisconnectReason.multideviceMismatch) {
+                fail(new Error('WHATSAPP_MULTIDEVICE_MISMATCH'));
+                return;
+              }
+
+              if (shouldPairReconnect(statusCode, qrEmitted)) {
+                if (ensureNotAborted()) return;
+
+                postScanReconnects += 1;
+                if (postScanReconnects > maxPostScanReconnects) {
+                  fail(new Error('WHATSAPP_PAIR_RECONNECT_LIMIT'));
+                  return;
+                }
+
+                this.logger.log(
+                  `WhatsApp pair reconnecting for tenant ${tenantId} (attempt ${postScanReconnects})`,
+                );
+                await persistBeforeReconnect();
+                onReconnecting?.();
+                startSocket();
+                return;
+              }
+
+              fail(new Error('WHATSAPP_CONNECTION_CLOSED'));
+            }
+          })();
+        });
       };
 
       startSocket();

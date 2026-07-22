@@ -20,10 +20,7 @@ import {
   type WhatsappProvider,
   type WhatsappSocket,
 } from './whatsapp-provider.interface.js';
-import {
-  maskPhoneForLog,
-  normalizePhoneToJid,
-} from './whatsapp-phone.js';
+import { maskPhoneForLog, normalizePhoneToJid } from './whatsapp-phone.js';
 
 function getSendThrottleMs(): number {
   const raw = process.env['WHATSAPP_SEND_THROTTLE_MS'];
@@ -201,7 +198,9 @@ export class WhatsappService {
         });
       } catch (error) {
         const reason =
-          error instanceof Error ? error.message : 'WHATSAPP_MESSAGE_BUILD_FAILED';
+          error instanceof Error
+            ? error.message
+            : 'WHATSAPP_MESSAGE_BUILD_FAILED';
         await this.markWhatsappFailure(qs.id, reason);
         fallbackToEmail.push(qs.id);
       }
@@ -231,9 +230,7 @@ export class WhatsappService {
             );
           } catch (error) {
             const reason =
-              error instanceof Error
-                ? error.message
-                : 'WHATSAPP_SEND_FAILED';
+              error instanceof Error ? error.message : 'WHATSAPP_SEND_FAILED';
             this.logger.warn(
               `WhatsApp send failed for quotation supplier ${target.qsId}: ${reason}`,
             );
@@ -290,7 +287,7 @@ export class WhatsappService {
     return session?.state === 'CONNECTED' && !!session.creds;
   }
 
-  private async loadWhatsappSuppliers(
+  private loadWhatsappSuppliers(
     quotationId: string,
     quotationSupplierIds?: string[],
   ) {

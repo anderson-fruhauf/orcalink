@@ -134,9 +134,7 @@ export async function makePrismaAuthState(
 
   const saveCreds = async (): Promise<void> => {
     await runSerialized(async () => {
-      const serialized = JSON.parse(
-        JSON.stringify(creds, BufferJSON.replacer),
-      );
+      const serialized = JSON.parse(JSON.stringify(creds, BufferJSON.replacer));
 
       await prisma.whatsappSession.upsert({
         where: { tenantId },

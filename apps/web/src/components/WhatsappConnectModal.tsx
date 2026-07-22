@@ -26,8 +26,10 @@ export const WhatsappConnectModal: React.FC<WhatsappConnectModalProps> = ({
   const onConnectedRef = useRef(onConnected);
   const onCloseRef = useRef(onClose);
 
-  onConnectedRef.current = onConnected;
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onConnectedRef.current = onConnected;
+    onCloseRef.current = onClose;
+  });
 
   const startConnection = () => {
     abortRef.current?.abort();
