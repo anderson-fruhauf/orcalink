@@ -96,7 +96,7 @@ jobs:
             --allow-unauthenticated \
             --clear-secrets \
             --clear-vpc-connector \
-            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL || format('https://{0}.web.app', secrets.GCP_PROJECT_ID) }}"
+            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL || format('https://{0}.web.app', secrets.GCP_PROJECT_ID) }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }}"
 
       - name: Verify deployment
         run: |
