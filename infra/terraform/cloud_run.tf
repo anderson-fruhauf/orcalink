@@ -10,15 +10,21 @@ locals {
   worker_url = "https://orcalink-worker-${data.google_project.this.number}.${var.gcp_region}.run.app"
 
   common_env = {
-    NODE_ENV               = "production"
-    DATABASE_URL           = var.database_url
-    JWT_SECRET             = var.jwt_secret
-    RESEND_API_KEY         = var.resend_api_key
-    RESEND_FROM_EMAIL      = var.resend_from_email
-    GCP_PROJECT_ID         = var.gcp_project_id
-    GCP_LOCATION           = var.gcp_region
-    WORKER_URL             = local.worker_url
-    CLOUD_TASKS_INVOKER_SA = google_service_account.tasks_invoker.email
+    NODE_ENV                            = "production"
+    DATABASE_URL                        = var.database_url
+    JWT_SECRET                          = var.jwt_secret
+    RESEND_API_KEY                      = var.resend_api_key
+    RESEND_FROM_EMAIL                   = var.resend_from_email
+    APP_URL                             = var.app_url
+    GCP_PROJECT_ID                      = var.gcp_project_id
+    GCP_LOCATION                        = var.gcp_region
+    WORKER_URL                          = local.worker_url
+    CLOUD_TASKS_INVOKER_SA              = google_service_account.tasks_invoker.email
+    WHATSAPP_ENABLED                    = tostring(var.whatsapp_enabled)
+    WHATSAPP_CREDENTIALS_ENCRYPTION_KEY = var.whatsapp_credentials_encryption_key
+    WHATSAPP_SEND_THROTTLE_MS           = tostring(var.whatsapp_send_throttle_ms)
+    WHATSAPP_CONNECT_TIMEOUT_MS         = tostring(var.whatsapp_connect_timeout_ms)
+    WHATSAPP_PAIR_TIMEOUT_MS            = tostring(var.whatsapp_pair_timeout_ms)
   }
 }
 
@@ -35,6 +41,12 @@ resource "google_service_account" "tasks_invoker" {
   display_name = "Invoker das filas e do scheduler do OrçaLink"
 }
 
+# O deploy contínuo do orcalink-api é feito pelo GitHub Actions
+# (.github/workflows/deploy.yml), via `gcloud run deploy` a cada push na master —
+# imagem com tag do commit-sha, env vars vindas de GitHub Secrets e labels de
+# rastreio (commit-sha, managed-by). O Terraform só garante que o serviço existe,
+# com a identidade e a rede corretas; ver `lifecycle.ignore_changes` abaixo para o
+# que fica sob responsabilidade do CI.
 resource "google_cloud_run_v2_service" "api" {
   name     = "orcalink-api"
   location = var.gcp_region
@@ -83,12 +95,19 @@ resource "google_cloud_run_v2_service" "api" {
   lifecycle {
     ignore_changes = [
       client,
-      client_version
+      client_version,
+      # Gerenciados pelo GitHub Actions a cada push — ver comentário acima.
+      template[0].containers[0].image,
+      template[0].containers[0].env,
+      template[0].labels,
     ]
   }
 }
 
 # Worker que processa as tasks. Privado: só a service account invoker alcança.
+# Sem pipeline de CI dedicado — o deploy de novas imagens é feito rodando
+# `terraform apply` (ou um `gcloud run deploy orcalink-worker --image=...`
+# pontual). Ver observação de trade-off na task 24.
 resource "google_cloud_run_v2_service" "worker" {
   name     = "orcalink-worker"
   location = var.gcp_region

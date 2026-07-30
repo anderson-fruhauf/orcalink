@@ -86,6 +86,16 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
+      # O worker (orcalink-worker) é gerenciado só pelo Terraform (infra/terraform),
+      # mas ele já precisa existir para sabermos a URL a passar como WORKER_URL.
+      - name: Resolve worker URL (Cloud Tasks)
+        run: |
+          WORKER_URL=$(gcloud run services describe orcalink-worker \
+            --project="${{ env.CLEAN_PROJECT_ID }}" \
+            --region="${{ env.GCP_REGION }}" \
+            --format='value(status.url)')
+          echo "WORKER_URL=$WORKER_URL" >> $GITHUB_ENV
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -96,7 +106,8 @@ jobs:
             --allow-unauthenticated \
             --clear-secrets \
             --clear-vpc-connector \
-            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }}"
+            --service-account="orcalink-api@${{ env.CLEAN_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }},SERVICE_ROLE=api,GCP_PROJECT_ID=${{ env.CLEAN_PROJECT_ID }},GCP_LOCATION=${{ env.GCP_REGION }},WORKER_URL=${{ env.WORKER_URL }},CLOUD_TASKS_INVOKER_SA=orcalink-tasks-invoker@${{ env.CLEAN_PROJECT_ID }}.iam.gserviceaccount.com"
 
       - name: Verify deployment
         run: |

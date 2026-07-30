@@ -18,3 +18,13 @@ jwt_secret = "troque-em-producao-para-um-segredo-forte"
 # Chave de API do Resend (painel do Resend → API Keys)
 resend_api_key    = "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 resend_from_email = "onboarding@resend.dev"
+
+# URL pública do frontend (Firebase Hosting) — usada no link do Magic Link
+app_url = "https://orcalink-534b8.web.app"
+
+# WhatsApp (P1) — só o worker usa; deixe desabilitado até a task 23 entrar em produção
+whatsapp_enabled                    = false
+whatsapp_credentials_encryption_key = ""
+whatsapp_send_throttle_ms           = 2000
+whatsapp_connect_timeout_ms         = 15000
+whatsapp_pair_timeout_ms            = 120000
