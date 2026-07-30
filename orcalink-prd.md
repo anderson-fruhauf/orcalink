@@ -170,7 +170,7 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 * **RNF02 - Arquitetura do Frontend:** As interfaces (Painel do Comprador e Portal do Fornecedor) devem ser desenvolvidas como uma Single Page Application (SPA) utilizando **React** com **TypeScript**, compiladas via **Vite** para máxima velocidade de carregamento.
 * **RNF03 - Responsividade Extrema:** O Portal do Fornecedor deve ter carregamento ultra-rápido (Time to First Byte < 500ms) e design adaptado para telas pequenas (320px de largura mínima), evitando qualquer rolagem horizontal.
 * **RNF04 - Banco de Dados:** Uso de **um único banco de dados PostgreSQL** compartilhado entre todos os tenants, gerenciado via **Prisma ORM** para consistência relacional, migrações versionadas e controle estrito das entidades. O isolamento multi-tenant é implementado no nível da aplicação via coluna `tenantId` (UUID) presente em todas as tabelas de domínio. Toda query deve incluir filtro por `tenantId` obrigatoriamente — implementado via middleware/interceptor global no NestJS para eliminar risco de vazamento de dados entre tenants.
-* **RNF05 - Processamento em Fila (Background Jobs):** O envio de e-mails deve ser delegado para um sistema de mensageria/filas (**BullMQ** com **Redis**), garantindo que a API não sofra gargalos ou timeouts.
+* **RNF05 - Processamento Assíncrono (Background Jobs):** O envio de mensagens (e-mail e WhatsApp) deve ser delegado a uma fila gerenciada **push** — **Google Cloud Tasks** — garantindo que a API não sofra gargalos ou timeouts. A fila entrega o job via HTTP autenticado (OIDC) a um serviço **Cloud Run privado** (`orcalink-worker`), que acorda sob demanda; retry com backoff exponencial e throttling por canal são configuração da fila, não código. Rotinas periódicas (expiração de cotações) usam **Cloud Scheduler**. Esta decisão substitui a proposta original de **BullMQ + Redis**, que exigiria um worker acordado full-time e inviabilizaria o modelo de custo zero (scale-to-zero com `min-instances: 0`).
 * **RNF06 - Segurança dos Magic Links:** Os tokens contidos nos links devem ser hashes criptográficos únicos baseados em UUIDv4 combinados com assinatura HMAC utilizando chave secreta da aplicação, com tempo de expiração atrelado à validade da cotação.
 * **RNF07 - Segurança de API:** A API deve implementar:
   * **Rate Limiting:** Limites de requisições por IP/token para endpoints públicos (portal do fornecedor) e autenticados (painel do comprador).
@@ -254,9 +254,11 @@ O sistema opera em modelo multi-tenant, onde cada empresa é um tenant isolado:
 ### MVP
 1. **Disparo de E-mails:** Integração via API transacional utilizando **Resend** como provedor primário (DX moderna, boa integração com Node.js). Fallback configurável para **Amazon SES** em cenários de alta escala.
 2. **Compartilhamento de Link:** Utilização da [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share) nativa do navegador com fallback para cópia para a área de transferência (`navigator.clipboard`).
+3. **Fila Assíncrona:** **Google Cloud Tasks** (filas `email-dispatch` e `whatsapp-dispatch`) entregando os jobs por HTTP autenticado ao worker no Cloud Run, e **Cloud Scheduler** para as rotinas periódicas. Ambos dentro do free tier (1 milhão de operações/mês e 3 jobs de scheduler). Ver RNF05.
 
 ### P1
-3. **Disparo de WhatsApp:** Conexão com gateway de mensageria. A decisão entre **API Oficial da Meta (Cloud API)** e soluções baseadas em instâncias headless (ex: **Evolution API**) será feita com base na validação de mercado do MVP. Independente da escolha, o sistema deve implementar:
+4. **Disparo de WhatsApp:** Conexão efêmera via **Baileys** (WhatsApp Web, não-oficial), acionada pela fila `whatsapp-dispatch`. A migração para a **API Oficial da Meta (Cloud API)** fica condicionada à validação de mercado e não altera o `WhatsappService` (abstração `WhatsappProvider`). Independente da escolha, o sistema deve implementar:
    * Fallback automático para e-mail caso o disparo WhatsApp falhe.
-   * Throttling de envio para respeitar limites do provedor.
-   * Retry com backoff exponencial.
+   * Throttling de envio para respeitar limites do provedor — configurado na fila (`max_dispatches_per_second`) e entre mensagens da mesma conexão.
+   * Retry com backoff exponencial — `retry_config` da fila.
+   * Sessão única por número, garantida por `max_concurrent_dispatches = 1`.

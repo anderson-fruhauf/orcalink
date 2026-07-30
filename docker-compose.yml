@@ -16,17 +16,19 @@ services:
       timeout: 3s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
+  # Stand-in do Cloud Tasks para deploy self-hosted (VPS/on-premise).
+  # Atenção: as filas são em memória — tasks pendentes se perdem no restart.
+  # O ambiente gerenciado (GCP) usa o Cloud Tasks real, sem este container.
+  cloud-tasks-emulator:
+    image: ghcr.io/aertje/cloud-tasks-emulator:latest
     restart: unless-stopped
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command:
+      - -host=0.0.0.0
+      - -port=8123
+      - -queue=projects/orcalink/locations/us-central1/queues/email-dispatch
+      - -queue=projects/orcalink/locations/us-central1/queues/whatsapp-dispatch
     ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      - "8123:8123"
 
   api:
     build: ./apps/api
@@ -35,15 +37,20 @@ services:
       - "3333:3333"
     environment:
       DATABASE_URL: postgresql://orcalink:orcalink_pass@postgres:5432/orcalink
-      REDIS_URL: redis://redis:6379
       JWT_SECRET: change-me-in-production
       RESEND_API_KEY: ${RESEND_API_KEY}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      SERVICE_ROLE: worker
+      GCP_PROJECT_ID: orcalink
+      GCP_LOCATION: us-central1
+      WORKER_URL: http://api:3333
+      CLOUD_TASKS_EMULATOR_HOST: cloud-tasks-emulator:8123
+      CLOUD_TASKS_DEV_SECRET: ${CLOUD_TASKS_DEV_SECRET:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      cloud-tasks-emulator:
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333/api/health', (r) => { if (r.statusCode === 200 || r.statusCode === 404) process.exit(0); else process.exit(1); })"]
       interval: 10s

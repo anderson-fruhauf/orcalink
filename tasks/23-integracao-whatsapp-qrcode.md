@@ -2,7 +2,8 @@
 
 > **Fase:** P1 — Automação (v1.1). Não faz parte do MVP (P0).
 > **Camada:** Backend + Frontend.
-> **Depende de:** 14 (Magic Links), 15 (Disparo de E-mail), 16 (Cotações Pages), 22 (Observabilidade).
+> **Depende de:** 14 (Magic Links), 15 (Disparo de E-mail), 16 (Cotações Pages), 22 (Observabilidade),
+> 24 (Fila assíncrona no Cloud Tasks).
 
 ## Objetivo
 
@@ -21,11 +22,13 @@ conviver com instâncias que dormem e acordam sob demanda.
 
 A solução é uma **conexão efêmera (on-demand)** usando o **Baileys**
 (`@whiskeysockets/baileys`) — biblioteca em WebSocket puro (sem browser/Chromium), embutida no
-próprio processo NestJS. O ciclo é:
+próprio processo NestJS. O disparo é acionado por uma **task do Cloud Tasks** (task 24), que faz o
+POST HTTP no worker e acorda a instância. O ciclo é:
 
 ```
-[acordar instância] → restaura credenciais do banco → conecta (~poucos segundos)
-   → envia as mensagens da cotação → fecha a conexão → instância volta a dormir
+[task da fila whatsapp-dispatch] → acorda o worker → restaura credenciais do banco
+   → conecta (~poucos segundos) → envia as mensagens da cotação → fecha a conexão
+   → instância volta a dormir
 ```
 
 ### Os 3 pontos levantados (e por que funcionam)
@@ -40,25 +43,28 @@ próprio processo NestJS. O ciclo é:
 
 2. **Sem webhook / sem serviço full-time** ✅
    No modelo "conecta → envia → desconecta", o resultado do envio volta **síncrono** do próprio
-   `sock.sendMessage(...)`. Não precisamos ficar ouvindo eventos de entrega, logo **não há
-   webhook** e **nada roda em background**. Webhook só seria necessário para receber respostas do
-   fornecedor ou recibos de leitura — fora do escopo desta task.
+   `sock.sendMessage(...)`, dentro do request da task. Não precisamos ficar ouvindo eventos de
+   entrega, logo **não há webhook** e **nada roda em background**. Webhook só seria necessário para
+   receber respostas do fornecedor ou recibos de leitura — fora do escopo desta task.
 
-3. **Sem BullMQ (envio direto)** ✅
-   Seguindo o padrão atual do projeto, o envio é **direto e síncrono**, exatamente como o
-   `MailService.sendEmail` faz hoje (sem fila). Retry/backoff, quando necessário, é um laço
-   simples inline; se esgotar, cai no **fallback de e-mail**.
+3. **Fila gerenciada em vez de BullMQ** ✅
+   O envio roda no worker acionado pela fila `whatsapp-dispatch` do **Cloud Tasks** (task 24), que
+   entrega retry com backoff, throttling e — com `max_concurrent_dispatches = 1` — a garantia de
+   **uma única sessão por vez**, sem Redis e sem worker acordado. Se todas as tentativas falharem,
+   cai no **fallback de e-mail** (também enfileirado).
 
 ### Trade-offs a registrar (honestidade técnica)
 
 - **Latência de conexão:** abrir a sessão WhatsApp custa alguns segundos (~3–10s) por disparo.
   Como conectamos **uma vez por cotação** e enviamos todas as mensagens naquela mesma conexão, o
-  custo é amortizado. Fica dentro do timeout de request do Cloud Run.
+  custo é amortizado. Como o disparo roda no worker (timeout 900s) e não no request do usuário, a
+  latência não é percebida na UI.
 - **Pareamento precisa de socket vivo:** durante o onboarding (scan do QR), a conexão fica aberta
   por alguns segundos/até ~1 min enquanto o usuário escaneia. Isso é **pontual e iniciado pelo
   usuário** — depois a instância volta a dormir. Não é serviço full-time.
-- **Concorrência:** o WhatsApp limita sessões simultâneas do mesmo número. Garantir que não
-  abrimos duas conexões concorrentes para o mesmo tenant (lock simples — ver backend).
+- **Concorrência:** o WhatsApp limita sessões simultâneas do mesmo número. A fila
+  `whatsapp-dispatch` com concorrência 1 serializa os disparos entre instâncias — um lock
+  in-memory não bastaria, já que o Cloud Run escala horizontalmente.
 - **Risco de bloqueio:** por ser não-oficial, envios em massa/rápidos podem levar a bloqueio da
   conta pelo WhatsApp. Aplicar um pequeno intervalo entre mensagens (throttle inline).
 
@@ -82,9 +88,9 @@ export interface WhatsappProvider {
 ## Pré-requisitos / Dependências
 
 - `apps/api` (yarn): `@whiskeysockets/baileys` + `qrcode` (para converter a string do QR em
-  imagem base64 exibível). **Sem** BullMQ, **sem** Redis novo, **sem** container extra.
-- **Nenhum serviço adicional no `docker-compose`** — a lib roda dentro do NestJS.
-- **Nenhum custo** — 100% self-contido.
+  imagem base64 exibível). **Sem** Redis, **sem** gateway externo, **sem** container extra.
+- Fila `whatsapp-dispatch` e worker privado já provisionados pela **task 24**.
+- **Nenhum custo adicional** — Baileys roda dentro do NestJS e o Cloud Tasks está no free tier.
 
 ## Schema Prisma (novas entidades)
 
@@ -205,8 +211,9 @@ Implementar um `AuthenticationState` customizado do Baileys apoiado no Prisma
 3. Se `close` com `DisconnectReason.loggedOut` → marca `DISCONNECTED`, limpa credenciais e sinaliza
    necessidade de **novo pareamento** (fallback e-mail neste disparo).
 4. Executa `fn` (envios), persiste `creds` atualizadas, **fecha o socket**.
-- **Lock por tenant** (in-memory por instância; suficiente pois envio é sob demanda) para evitar
-  duas conexões simultâneas do mesmo número.
+- **Serialização por fila:** a concorrência 1 da fila `whatsapp-dispatch` impede duas conexões
+  simultâneas do mesmo número, inclusive entre instâncias diferentes do Cloud Run. O lock
+  in-memory permanece apenas como proteção local dentro do mesmo processo.
 
 ### 4. Endpoints (`WhatsappController`, prefixo `/api`, protegido por `FirebaseAuthGuard`)
 
@@ -229,15 +236,16 @@ Implementar um `AuthenticationState` customizado do Baileys apoiado no Prisma
   `PATCH /quotations/:id/suppliers/:supplierId/channel` (só permitido enquanto `DRAFT`/antes de
   publicar). Valida enum e retorna o `QuotationSupplier` atualizado.
 
-### 6. Integração no disparo (envio direto — sem fila)
+### 6. Integração no disparo (via fila `whatsapp-dispatch`)
 
 - Em `QuotationService.publish` e `QuotationService.resend`, selecionar canal por
   `QuotationSupplier.channel`:
-  - `WHATSAPP` **e** sessão `CONNECTED` **e** fornecedor com `phone` válido → enviar via
-    `WhatsappService` (direto, como o e-mail é hoje).
-  - Falha no WhatsApp (conexão caiu, `loggedOut`, telefone inválido, erro de envio após pequeno
-    retry inline) → **fallback automático para e-mail** via `MailService`, registrando o motivo
-    em log estruturado (correlationId — task 22) e em `QuotationSupplier.whatsappError`.
+  - `WHATSAPP` → enfileirar **uma** task `whatsapp-dispatch` por cotação com os
+    `quotationSupplierIds` desse canal (todas as mensagens saem na mesma conexão).
+  - No handler, se a sessão não estiver `CONNECTED`, o fornecedor não tiver `phone` válido, ou o
+    envio falhar após as tentativas da fila → **fallback automático para e-mail**, enfileirando
+    uma task `email-dispatch`, e registrando o motivo em log estruturado (correlationId — task 22)
+    e em `QuotationSupplier.whatsappError`.
 - **Throttle inline:** pequeno intervalo entre mensagens na mesma conexão (ex.: 1–3s) para
   reduzir risco de bloqueio.
 - Atualizar `whatsappSentAt` após envio bem-sucedido (espelha o `sentAt` do e-mail).
@@ -368,7 +376,8 @@ usando `getApiErrorMessage()` para todos os erros (`apps/web/src/lib/errors.ts`)
 - [ ] Disparos seguintes **reconectam sem novo QR**, usando credenciais persistidas.
 - [ ] **Nenhum serviço/processo roda full-time**; conexão é efêmera (conecta → envia → fecha) e o
       backend mantém `min-instances: 0`.
-- [ ] **Sem webhook e sem fila (BullMQ)** — envio direto e síncrono, como o e-mail atual.
+- [ ] **Sem webhook e sem Redis** — o disparo é acionado pela fila `whatsapp-dispatch` do Cloud
+      Tasks, que serializa as sessões e cuida do retry.
 - [ ] Envio dos Magic Links por WhatsApp funciona para fornecedores com telefone válido.
 - [ ] **Fallback automático para e-mail** quando WhatsApp falha ou a sessão foi invalidada.
 - [ ] Recurso bloqueado no plano Free (P1) com mensagem de upgrade.

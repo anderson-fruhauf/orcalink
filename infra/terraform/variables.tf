@@ -16,11 +16,16 @@ variable "database_url" {
   sensitive   = true
 }
 
-variable "redis_url" {
+variable "container_image" {
   type        = string
-  description = "A URL de conexão do Redis Serverless (ex: Upstash)"
-  sensitive   = true
-  default     = ""
+  description = "Imagem publicada no Artifact Registry, usada pelos serviços de API e worker"
+  default     = "us-central1-docker.pkg.dev/orcalink-534b8/orcalink-api/api:latest"
+}
+
+variable "worker_timeout_seconds" {
+  type        = number
+  description = "Timeout do worker — precisa acomodar o lote de WhatsApp com throttle entre mensagens"
+  default     = 900
 }
 
 variable "jwt_secret" {

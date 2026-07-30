@@ -29,7 +29,7 @@ cd apps/api && yarn test:e2e         # Jest E2E
 cd apps/api && npx prisma migrate dev # Criar migrations
 cd apps/api && npx prisma validate   # Validar schema
 cd apps/api && npx prisma generate   # Gerar client
-docker compose -f docker-compose.dev.yml up -d  # BD + Redis local
+docker compose -f docker-compose.dev.yml up -d  # BD + emulador Cloud Tasks local
 docker compose config                          # Validar compose
 ```
 
@@ -48,13 +48,13 @@ docker compose config                          # Validar compose
 - Magic Links sem cadastro para fornecedores (token HMAC).
 - Planos Free (limitado) e Pro (ilimitado) — guard por recurso.
 - Precos em **centavos** (`Int`) — nunca float/decimal.
-- Filas BullMQ com Redis para disparo de email.
+- Disparo assincrono (email + WhatsApp) via **Google Cloud Tasks** — fila push HTTP com OIDC para um Cloud Run privado (`orcalink-worker`). Cron de expiracao via **Cloud Scheduler**. Sem BullMQ, sem Redis (ver `tasks/24`).
 - Seed: 1 tenant + 1 admin (`admin@orcalink.com / 123456`) criado via Firebase Admin SDK.
 - **Infraestrutura Custo Zero (MVP - Híbrida Scale-to-Zero)**:
-  - **Servidor**: Cloud Run (min-instances: 0, CPU alocada sob demanda) + Firebase Hosting.
+  - **Servidor**: Cloud Run — `orcalink-api` (publico) e `orcalink-worker` (privado, so a SA do Cloud Tasks invoca), ambos min-instances: 0 e CPU sob demanda + Firebase Hosting.
   - **PostgreSQL**: Supabase ou Neon DB (standby automático após inatividade).
-  - **Redis/BullMQ**: Upstash (Redis Serverless).
-  - **Migração**: 100% compatível com infra dedicada (Cloud SQL / Memorystore) ou VPS Docker alterando apenas as variáveis de ambiente (`DATABASE_URL` e `REDIS_URL`).
+  - **Fila**: Google Cloud Tasks (1M operacoes/mes gratis) + Cloud Scheduler (3 jobs gratis). Local: emulador em container.
+  - **Migração**: 100% compatível com infra dedicada (Cloud SQL) ou VPS Docker alterando `DATABASE_URL` e trocando a implementacao de `TaskQueue` (DIP).
 
 ## Convencoes
 
@@ -67,7 +67,9 @@ docker compose config                          # Validar compose
 
 ## Estado atual
 
-Tasks 00 (scaffold) e 01 (schema + migration init) concluidas. Proximo passo: task 02 (Autenticacao Firebase). API e web compilam mas nao rodam sem PostgreSQL + Redis.
+Tasks 00 (scaffold) e 01 (schema + migration init) concluidas. Proximo passo: task 02 (Autenticacao Firebase). API e web compilam mas nao rodam sem PostgreSQL.
+
+Task 24 (fila assincrona no Cloud Tasks) esta planejada e ainda **nao implementada**: hoje `QuotationService.dispatchQuotationInvites` envia email/WhatsApp de forma sincrona dentro do request.
 
 ## Referencias
 

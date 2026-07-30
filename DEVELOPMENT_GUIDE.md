@@ -51,7 +51,7 @@ apps/api/
 
 ### Mocking
 
-- Use `jest.mock()` para dependências externas (Resend, BullMQ)
+- Use `jest.mock()` para dependências externas (Resend, Cloud Tasks, Baileys)
 - Use banco de dados de teste real (PostgreSQL via Docker) para testes de integração
 - **Nunca** mocke o Prisma em testes de integração — use um banco separado com `DATABASE_URL_TEST`
 

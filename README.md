@@ -31,7 +31,7 @@ O Orçalink foi desenhado para ser eficiente e escalável a custo zero no MVP (S
 | **Banco de Dados** | **PostgreSQL** | Banco relacional robusto para consistência relacional e transações. |
 | **ORM** | **Prisma ORM** (v7+) | Mapeamento seguro, migrações versionadas e geração de cliente estritamente tipado. |
 | **Autenticação** | **Firebase Auth** | Gestão segura de identidades (Firebase Client SDK no web / Admin SDK no API). |
-| **Background Jobs** | **BullMQ** + **Redis** | Fila de processamento assíncrono dedicada para envio de e-mails sem gargalos de API. |
+| **Background Jobs** | **Google Cloud Tasks** + **Cloud Scheduler** | Fila push gerenciada que acorda o worker sob demanda: retry com backoff, throttling e cron sem Redis e sem processo full-time. |
 | **Disparo de E-mails**| **Resend** | Provedor transacional moderno para envio de e-mails rápidos com fallback para AWS SES. |
 
 ### 🏢 Arquitetura Multi-Tenant
@@ -52,7 +52,7 @@ orcalink/
 │   ├── api/                   # Backend NestJS (usa yarn)
 │   └── web/                   # Frontend React (usa npm)
 ├── tasks/                     # Roteiro das 24 tasks ordenadas por dependência do MVP
-├── docker-compose.dev.yml     # Serviços de BD (Postgres) e Cache (Redis) locais
+├── docker-compose.dev.yml     # Serviços locais: Postgres + emulador do Cloud Tasks
 ├── orcalink-prd.md            # Documento de Requisitos de Produto completo
 ├── DEVELOPMENT_GUIDE.md       # Regras e padrões de código obrigatórios (TDD, SOLID)
 └── styles.md                  # Especificações do Design System (Cores, Fontes, Componentes)
@@ -71,9 +71,9 @@ Certifique-se de possuir instalado em sua máquina:
 
 ---
 
-### Passo 1: Infraestrutura Local (Banco e Redis)
+### Passo 1: Infraestrutura Local (Banco e Fila)
 
-Inicie o PostgreSQL e o Redis usando o Docker Compose na raiz do projeto:
+Inicie o PostgreSQL e o emulador do Cloud Tasks usando o Docker Compose na raiz do projeto:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d

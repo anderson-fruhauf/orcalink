@@ -1,0 +1,20 @@
+# Copie para terraform.tfvars (gitignored) e preencha com os valores reais.
+# cp terraform.tfvars.example terraform.tfvars
+
+gcp_project_id = "orcalink-534b8"
+gcp_region     = "us-central1"
+
+# URL de conexão com o PostgreSQL gerenciado (Neon ou Supabase)
+database_url = "postgresql://usuario:senha@host/orcalink?sslmode=require"
+
+# Imagem publicada no Artifact Registry (repository_url do output + tag)
+container_image = "us-central1-docker.pkg.dev/orcalink-534b8/orcalink-api/api:latest"
+
+worker_timeout_seconds = 900
+
+# Gere um valor forte, ex.: openssl rand -base64 48
+jwt_secret = "troque-em-producao-para-um-segredo-forte"
+
+# Chave de API do Resend (painel do Resend → API Keys)
+resend_api_key    = "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+resend_from_email = "onboarding@resend.dev"

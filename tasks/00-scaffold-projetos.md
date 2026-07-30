@@ -9,7 +9,7 @@ Criar a estrutura base dos projetos backend (NestJS) e frontend (React + Vite) c
 1. Criar projeto NestJS via CLI: `nest new api --package-manager yarn --strict`
 2. Instalar dependências:
    - `@nestjs/config @nestjs/jwt @nestjs/passport passport passport-jwt`
-   - `@nestjs/bullmq bullmq`
+   - `@google-cloud/tasks google-auth-library` (fila assíncrona — ver task 24)
    - `@nestjs/throttler`
    - `prisma @prisma/client`
    - `bcryptjs uuid helmet resend`
@@ -28,7 +28,7 @@ Criar a estrutura base dos projetos backend (NestJS) e frontend (React + Vite) c
 4. Criar `src/styles/reset.css` e `src/styles/global.css`
 
 ### Root
-1. Criar `docker-compose.dev.yml`
+1. Criar `docker-compose.dev.yml` (PostgreSQL + emulador do Cloud Tasks)
 2. Criar `.env.example`
 3. Atualizar `.gitignore`
 
