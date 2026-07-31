@@ -29,6 +29,12 @@ enum DispatchChannel {
   WHATSAPP
 }
 
+enum DispatchStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
 enum WhatsappConnectionState {
   DISCONNECTED
   QR_PENDING
@@ -187,7 +193,9 @@ model QuotationSupplier {
   quotationId    String
   supplierId     String
   channel        DispatchChannel        @default(EMAIL)
+  dispatchStatus DispatchStatus         @default(QUEUED)
   sentAt         DateTime               @default(now())
+  emailError     String?
   whatsappSentAt DateTime?
   whatsappError  String?
   responseStatus SupplierResponseStatus @default(PENDING)

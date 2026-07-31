@@ -27,6 +27,8 @@
     "prisma:seed": "npx prisma db seed"
   },
   "dependencies": {
+    "@google-cloud/tasks": "^6.3.0",
+    "@grpc/grpc-js": "^1.14.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",

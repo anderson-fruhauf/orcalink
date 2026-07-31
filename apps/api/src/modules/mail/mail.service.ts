@@ -244,10 +244,13 @@ export class MailService {
         );
       }
 
-      // Update sentAt in QuotationSupplier
       await this.prisma.quotationSupplier.update({
         where: { id: qs.id },
-        data: { sentAt: new Date() },
+        data: {
+          sentAt: new Date(),
+          dispatchStatus: 'SENT',
+          emailError: null,
+        },
       });
     });
   }

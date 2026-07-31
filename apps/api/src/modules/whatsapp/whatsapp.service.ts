@@ -222,6 +222,8 @@ export class WhatsappService {
                 whatsappSentAt: new Date(),
                 whatsappError: null,
                 sentAt: new Date(),
+                dispatchStatus: 'SENT',
+                emailError: null,
               },
             });
             sentIds.push(target.qsId);
@@ -366,24 +368,13 @@ export class WhatsappService {
     jid: string,
     text: string,
   ): Promise<void> {
-    const maxAttempts = 3;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const onWhatsApp = await sock.onWhatsApp(jid);
-        if (!onWhatsApp[0]?.exists) {
-          throw new Error('WHATSAPP_NUMBER_NOT_FOUND');
-        }
-
-        await sock.sendMessage(jid, { text });
-        return;
-      } catch (error) {
-        if (attempt === maxAttempts) {
-          throw error;
-        }
-        await sleep(1000);
-      }
+    // Retry/backoff fica a cargo do Cloud Tasks (concorrência 1 na fila).
+    const onWhatsApp = await sock.onWhatsApp(jid);
+    if (!onWhatsApp[0]?.exists) {
+      throw new Error('WHATSAPP_NUMBER_NOT_FOUND');
     }
+
+    await sock.sendMessage(jid, { text });
   }
 
   private async markWhatsappFailure(

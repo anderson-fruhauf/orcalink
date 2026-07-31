@@ -71,7 +71,7 @@ resource "google_service_account_iam_member" "api_uses_invoker" {
 resource "google_cloud_scheduler_job" "expire_quotations" {
   name        = "orcalink-expire-quotations"
   description = "Encerra cotações OPEN com prazo vencido"
-  schedule    = "0 1 * * *"
+  schedule    = "0 * * * *"
   time_zone   = "America/Sao_Paulo"
   region      = var.gcp_region
   project     = var.gcp_project_id

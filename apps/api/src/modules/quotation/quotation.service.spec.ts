@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuotationService } from './quotation.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { WhatsappService } from '../whatsapp/whatsapp.service.js';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { TASK_QUEUE } from '../tasks/task-queue.interface.js';
 
 describe('QuotationService', () => {
   let service: QuotationService;
@@ -14,8 +14,9 @@ describe('QuotationService', () => {
     sendEmail: jest.fn(),
   };
 
-  const mockWhatsappService = {
-    sendQuotationMessages: jest.fn(),
+  const mockTaskQueue = {
+    enqueue: jest.fn(),
+    isHealthy: jest.fn(),
   };
 
   const mockPrismaService = {
@@ -62,7 +63,7 @@ describe('QuotationService', () => {
         QuotationService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: MailService, useValue: mockMailService },
-        { provide: WhatsappService, useValue: mockWhatsappService },
+        { provide: TASK_QUEUE, useValue: mockTaskQueue },
       ],
     }).compile();
 
@@ -469,10 +470,6 @@ describe('QuotationService', () => {
         id: 'q-1',
         status: 'OPEN',
       });
-      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
-        sentIds: [],
-        fallbackToEmail: [],
-      });
 
       const result = await service.publish('q-1');
 
@@ -485,11 +482,21 @@ describe('QuotationService', () => {
         data: { status: 'OPEN' },
       });
       expect(prismaService.magicLink.upsert).toHaveBeenCalled();
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationSupplierId: 'qs-1',
+        }),
+        expect.objectContaining({
+          dedupeKey: expect.stringContaining('email:qs-1:'),
+        }),
+      );
+      expect(mockMailService.sendEmail).not.toHaveBeenCalled();
       expect(result.status).toBe('OPEN');
     });
 
-    it('should dispatch whatsapp and fallback failed suppliers to email', async () => {
+    it('should enqueue whatsapp and email tasks without sending inline', async () => {
       prismaService.quotation.findUnique.mockResolvedValue({
         id: 'q-1',
         tenantId: 'tenant-123',
@@ -505,20 +512,27 @@ describe('QuotationService', () => {
         id: 'q-1',
         status: 'OPEN',
       });
-      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
-        sentIds: ['qs-1'],
-        fallbackToEmail: ['qs-3'],
-      });
 
       await service.publish('q-1');
 
-      expect(mockWhatsappService.sendQuotationMessages).toHaveBeenCalledWith(
-        'tenant-123',
-        'q-1',
-        ['qs-1'],
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationSupplierId: 'qs-2',
+        }),
+        expect.any(Object),
       );
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-2');
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-3');
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'whatsapp-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationId: 'q-1',
+          quotationSupplierIds: ['qs-1'],
+        }),
+        expect.any(Object),
+      );
+      expect(mockMailService.sendEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -566,7 +580,7 @@ describe('QuotationService', () => {
       );
     });
 
-    it('should check limit, dispatch invite and return success if valid', async () => {
+    it('should check limit, enqueue invite and return success if valid', async () => {
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
@@ -578,10 +592,6 @@ describe('QuotationService', () => {
           status: 'OPEN',
         },
       });
-      mockWhatsappService.sendQuotationMessages.mockResolvedValue({
-        sentIds: ['qs-1'],
-        fallbackToEmail: [],
-      });
 
       const result = await service.resend('q-1', 's-1');
 
@@ -589,10 +599,14 @@ describe('QuotationService', () => {
         'tenant-123',
         1,
       );
-      expect(mockWhatsappService.sendQuotationMessages).toHaveBeenCalledWith(
-        'tenant-123',
-        'q-1',
-        ['qs-1'],
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'whatsapp-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationId: 'q-1',
+          quotationSupplierIds: ['qs-1'],
+        }),
+        expect.any(Object),
       );
       expect(result).toEqual({ success: true });
     });

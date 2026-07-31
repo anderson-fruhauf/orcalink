@@ -229,6 +229,7 @@ describe('WhatsappService', () => {
         data: expect.objectContaining({
           whatsappSentAt: expect.any(Date),
           whatsappError: null,
+          dispatchStatus: 'SENT',
         }),
       });
     });

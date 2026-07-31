@@ -29,6 +29,8 @@ services:
       - -queue=projects/orcalink/locations/us-central1/queues/whatsapp-dispatch
     ports:
       - "8123:8123"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   api:
     build: ./apps/api

@@ -1,8 +1,10 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { createHmac, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Prisma, Quotation } from '../../generated/prisma/client.js';
 import { CreateQuotationDto } from './dto/create-quotation.dto.js';
@@ -10,17 +12,19 @@ import { UpdateQuotationDto } from './dto/update-quotation.dto.js';
 import { QueryQuotationDto } from './dto/query-quotation.dto.js';
 import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
-import { createHmac } from 'crypto';
 import { MailService } from '../mail/mail.service.js';
-import { WhatsappService } from '../whatsapp/whatsapp.service.js';
 import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
+import {
+  TASK_QUEUE,
+  type TaskQueue,
+} from '../tasks/task-queue.interface.js';
 
 @Injectable()
 export class QuotationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
-    private readonly whatsappService: WhatsappService,
+    @Inject(TASK_QUEUE) private readonly taskQueue: TaskQueue,
   ) {}
 
   async create(dto: CreateQuotationDto): Promise<Quotation> {
@@ -440,24 +444,48 @@ export class QuotationService {
     const emailSuppliers = suppliers.filter(
       (supplier) => supplier.channel !== 'WHATSAPP',
     );
+    const correlationId = randomUUID();
+    const dispatchRound = Date.now();
 
-    let fallbackIds = new Set<string>();
-
-    if (whatsappSuppliers.length > 0) {
-      const whatsappResult = await this.whatsappService.sendQuotationMessages(
-        tenantId,
-        quotationId,
-        whatsappSuppliers.map((supplier) => supplier.id),
-      );
-      fallbackIds = new Set(whatsappResult.fallbackToEmail);
+    const supplierIds = suppliers.map((supplier) => supplier.id);
+    if (supplierIds.length > 0) {
+      await this.prisma.quotationSupplier.updateMany({
+        where: { id: { in: supplierIds } },
+        data: {
+          dispatchStatus: 'QUEUED',
+          emailError: null,
+          whatsappError: null,
+        },
+      });
     }
 
     for (const supplier of emailSuppliers) {
-      await this.mailService.sendEmail(supplier.id);
+      await this.taskQueue.enqueue(
+        'email-dispatch',
+        {
+          tenantId,
+          quotationSupplierId: supplier.id,
+          correlationId,
+        },
+        {
+          dedupeKey: `email:${supplier.id}:${dispatchRound}`,
+        },
+      );
     }
 
-    for (const supplierId of fallbackIds) {
-      await this.mailService.sendEmail(supplierId);
+    if (whatsappSuppliers.length > 0) {
+      await this.taskQueue.enqueue(
+        'whatsapp-dispatch',
+        {
+          tenantId,
+          quotationId,
+          quotationSupplierIds: whatsappSuppliers.map((s) => s.id),
+          correlationId,
+        },
+        {
+          dedupeKey: `whatsapp:${quotationId}:${dispatchRound}`,
+        },
+      );
     }
   }
 

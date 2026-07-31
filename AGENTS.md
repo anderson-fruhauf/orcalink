@@ -69,7 +69,7 @@ docker compose config                          # Validar compose
 
 Tasks 00 (scaffold) e 01 (schema + migration init) concluidas. Proximo passo: task 02 (Autenticacao Firebase). API e web compilam mas nao rodam sem PostgreSQL.
 
-Task 24 (fila assincrona no Cloud Tasks) esta planejada e ainda **nao implementada**: hoje `QuotationService.dispatchQuotationInvites` envia email/WhatsApp de forma sincrona dentro do request.
+Task 24 (fila assincrona no Cloud Tasks) implementada: `dispatchQuotationInvites` enfileira; o worker (`SERVICE_ROLE=worker`) processa `/api/tasks/*` via Cloud Tasks + Cloud Scheduler.
 
 ## Referencias
 

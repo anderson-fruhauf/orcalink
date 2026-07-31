@@ -26,6 +26,9 @@ services:
       - -queue=projects/orcalink-dev/locations/us-central1/queues/whatsapp-dispatch
     ports:
       - "8123:8123"
+    # Permite o emulador alcançar a API rodando no host (yarn dev).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   api:
     image: node:20-alpine

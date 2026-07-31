@@ -698,6 +698,27 @@
   color: var(--success-700);
 }
 
+.quotation-dispatch-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.quotation-dispatch-resend {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--primary-600);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.quotation-dispatch-resend:hover {
+  text-decoration: underline;
+}
+
 .quotation-dispatch-fallback {
   display: block;
   margin-top: 4px;

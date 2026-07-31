@@ -47,10 +47,12 @@ interface QuotationSupplier {
   id: string;
   supplierId: string;
   channel?: DispatchChannel;
+  dispatchStatus?: 'QUEUED' | 'SENT' | 'FAILED';
   responseStatus: 'PENDING' | 'SUBMITTED' | 'EXPIRED';
   sentAt: string;
   whatsappSentAt?: string | null;
   whatsappError?: string | null;
+  emailError?: string | null;
   supplier: Supplier;
 }
 
@@ -168,18 +170,24 @@ export const QuotationDetail: React.FC = () => {
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch quotation details
-  const fetchQuotationDetails = useCallback(async () => {
+  const fetchQuotationDetails = useCallback(async (options?: { silent?: boolean }) => {
     if (!id) return;
     try {
-      setLoading(true);
+      if (!options?.silent) {
+        setLoading(true);
+      }
       const response = await api.get<QuotationDetailResponse>(`/quotations/${id}`);
       setQuotation(response.data);
       setSelectedSupplierIds(response.data.suppliers.map((s) => s.supplierId));
     } catch {
-      toast.error('Não foi possível carregar os detalhes da cotação.');
-      navigate('/dashboard/quotations');
+      if (!options?.silent) {
+        toast.error('Não foi possível carregar os detalhes da cotação.');
+        navigate('/dashboard/quotations');
+      }
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }, [id, navigate]);
 
@@ -200,6 +208,29 @@ export const QuotationDetail: React.FC = () => {
   useEffect(() => {
     fetchQuotationDetails();
   }, [fetchQuotationDetails]);
+
+  useEffect(() => {
+    if (!quotation || quotation.status !== 'OPEN') return;
+
+    const hasQueued = quotation.suppliers.some(
+      (qs) => (qs.dispatchStatus || 'QUEUED') === 'QUEUED',
+    );
+    if (!hasQueued) return;
+
+    const intervalId = window.setInterval(() => {
+      void fetchQuotationDetails({ silent: true });
+    }, 3000);
+
+    const onFocus = () => {
+      void fetchQuotationDetails({ silent: true });
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [quotation, fetchQuotationDetails]);
 
   useEffect(() => {
     if (quotation?.status === 'DRAFT') {
@@ -299,7 +330,7 @@ export const QuotationDetail: React.FC = () => {
     try {
       setActionLoading(true);
       await api.post(`/quotations/${quotation.id}/publish`);
-      toast.success('Cotação publicada! Os convites foram enviados aos fornecedores.');
+      toast.success('Cotação publicada! Os convites estão sendo enviados.');
       fetchQuotationDetails();
     } catch (error: any) {
       toast.error(getApiErrorMessage(error, 'Erro ao publicar cotação.'));
@@ -512,9 +543,9 @@ export const QuotationDetail: React.FC = () => {
       toast.loading('Reenviando convite...');
       await api.post(`/quotations/${quotation.id}/resend/${supplierId}`);
       toast.dismiss();
-      toast.success('Convite reenviado com sucesso!');
+      toast.success('Reenvio enfileirado. O status será atualizado em instantes.');
       closeSupplierMenu();
-      fetchQuotationDetails();
+      fetchQuotationDetails({ silent: true });
     } catch (error: any) {
       toast.dismiss();
       toast.error(getApiErrorMessage(error, 'Erro ao reenviar convite.'));
@@ -523,6 +554,34 @@ export const QuotationDetail: React.FC = () => {
 
   const renderDispatchBadge = (qs: QuotationSupplier) => {
     const dispatch = getDispatchInfo(qs);
+    const status = qs.dispatchStatus || 'QUEUED';
+
+    if (status === 'QUEUED') {
+      return (
+        <span className="badge badge-pending" title="Convite na fila de envio">
+          <span className="badge-dot" />
+          Enviando…
+        </span>
+      );
+    }
+
+    if (status === 'FAILED') {
+      return (
+        <div className="quotation-dispatch-status">
+          <span className="badge badge-expired">
+            <span className="badge-dot" />
+            Falha no envio
+          </span>
+          <button
+            type="button"
+            className="quotation-dispatch-resend"
+            onClick={() => handleResendInvite(qs.supplierId)}
+          >
+            Reenviar
+          </button>
+        </div>
+      );
+    }
 
     if (dispatch.channel === 'WHATSAPP') {
       return (
