@@ -18,17 +18,18 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   # ──────────────────────────────────────────────
-  # API — Build & Deploy to Cloud Run
+  # API + Worker — mesma imagem, SERVICE_ROLE diferente
   # ──────────────────────────────────────────────
   deploy-api:
-    name: Deploy API → Cloud Run
+    name: Deploy API & Worker → Cloud Run
     runs-on: ubuntu-latest
     needs: ci
     environment: production
 
     env:
       GCP_REGION: us-central1
-      SERVICE_NAME: orcalink-api
+      API_SERVICE_NAME: orcalink-api
+      WORKER_SERVICE_NAME: orcalink-worker
 
     steps:
       - name: Checkout
@@ -51,6 +52,8 @@ jobs:
           CLEAN_PROJECT_ID=$(echo "${{ secrets.GCP_PROJECT_ID }}" | tr -d '\r\n ' | xargs)
           echo "CLEAN_PROJECT_ID=$CLEAN_PROJECT_ID" >> $GITHUB_ENV
           echo "ARTIFACT_REGISTRY=${{ env.GCP_REGION }}-docker.pkg.dev/$CLEAN_PROJECT_ID/orcalink-api" >> $GITHUB_ENV
+          echo "RUNTIME_SA=orcalink-api@${CLEAN_PROJECT_ID}.iam.gserviceaccount.com" >> $GITHUB_ENV
+          echo "TASKS_INVOKER_SA=orcalink-tasks-invoker@${CLEAN_PROJECT_ID}.iam.gserviceaccount.com" >> $GITHUB_ENV
 
       - name: Build Docker image
         working-directory: apps/api
@@ -86,19 +89,19 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
-      # O worker (orcalink-worker) é gerenciado só pelo Terraform (infra/terraform),
-      # mas ele já precisa existir para sabermos a URL a passar como WORKER_URL.
+      # O serviço orcalink-worker deve existir (Terraform). Usamos a URL real
+      # como WORKER_URL da API e do próprio worker (OIDC audience / enqueue).
       - name: Resolve worker URL (Cloud Tasks)
         run: |
-          WORKER_URL=$(gcloud run services describe orcalink-worker \
+          WORKER_URL=$(gcloud run services describe ${{ env.WORKER_SERVICE_NAME }} \
             --project="${{ env.CLEAN_PROJECT_ID }}" \
             --region="${{ env.GCP_REGION }}" \
             --format='value(status.url)')
           echo "WORKER_URL=$WORKER_URL" >> $GITHUB_ENV
 
-      - name: Deploy to Cloud Run
+      - name: Deploy API to Cloud Run
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
+          gcloud run deploy ${{ env.API_SERVICE_NAME }} \
             --image ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --project ${{ env.CLEAN_PROJECT_ID }} \
@@ -106,16 +109,38 @@ jobs:
             --allow-unauthenticated \
             --clear-secrets \
             --clear-vpc-connector \
-            --service-account="orcalink-api@${{ env.CLEAN_PROJECT_ID }}.iam.gserviceaccount.com" \
-            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }},SERVICE_ROLE=api,GCP_PROJECT_ID=${{ env.CLEAN_PROJECT_ID }},GCP_LOCATION=${{ env.GCP_REGION }},WORKER_URL=${{ env.WORKER_URL }},CLOUD_TASKS_INVOKER_SA=orcalink-tasks-invoker@${{ env.CLEAN_PROJECT_ID }}.iam.gserviceaccount.com"
+            --service-account="${{ env.RUNTIME_SA }}" \
+            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }},SERVICE_ROLE=api,GCP_PROJECT_ID=${{ env.CLEAN_PROJECT_ID }},GCP_LOCATION=${{ env.GCP_REGION }},WORKER_URL=${{ env.WORKER_URL }},CLOUD_TASKS_INVOKER_SA=${{ env.TASKS_INVOKER_SA }}"
+
+      # Mesma imagem da API; privado (sem --allow-unauthenticated). IAM do
+      # invoker (Cloud Tasks / Scheduler) continua no Terraform.
+      - name: Deploy Worker to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.WORKER_SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ env.CLEAN_PROJECT_ID }} \
+            --port 3333 \
+            --no-allow-unauthenticated \
+            --ingress=internal \
+            --timeout=900 \
+            --clear-secrets \
+            --clear-vpc-connector \
+            --service-account="${{ env.RUNTIME_SA }}" \
+            --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},RESEND_API_KEY=${{ secrets.RESEND_API_KEY }},RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }},APP_URL=${{ secrets.APP_URL }},WHATSAPP_ENABLED=${{ secrets.WHATSAPP_ENABLED }},WHATSAPP_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.WHATSAPP_CREDENTIALS_ENCRYPTION_KEY }},WHATSAPP_SEND_THROTTLE_MS=${{ secrets.WHATSAPP_SEND_THROTTLE_MS }},WHATSAPP_CONNECT_TIMEOUT_MS=${{ secrets.WHATSAPP_CONNECT_TIMEOUT_MS }},WHATSAPP_PAIR_TIMEOUT_MS=${{ secrets.WHATSAPP_PAIR_TIMEOUT_MS }},SERVICE_ROLE=worker,GCP_PROJECT_ID=${{ env.CLEAN_PROJECT_ID }},GCP_LOCATION=${{ env.GCP_REGION }},WORKER_URL=${{ env.WORKER_URL }},CLOUD_TASKS_INVOKER_SA=${{ env.TASKS_INVOKER_SA }}"
 
       - name: Verify deployment
         run: |
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+          API_URL=$(gcloud run services describe ${{ env.API_SERVICE_NAME }} \
             --project=${{ env.CLEAN_PROJECT_ID }} \
             --region=${{ env.GCP_REGION }} \
             --format='value(status.url)')
-          echo "✅ API deployed at: $SERVICE_URL"
+          WORKER_URL=$(gcloud run services describe ${{ env.WORKER_SERVICE_NAME }} \
+            --project=${{ env.CLEAN_PROJECT_ID }} \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "✅ API deployed at: $API_URL"
+          echo "✅ Worker deployed at: $WORKER_URL"
 
   # ──────────────────────────────────────────────
   # WEB — Deploy to Firebase Hosting

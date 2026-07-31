@@ -105,9 +105,9 @@ resource "google_cloud_run_v2_service" "api" {
 }
 
 # Worker que processa as tasks. Privado: só a service account invoker alcança.
-# Sem pipeline de CI dedicado — o deploy de novas imagens é feito rodando
-# `terraform apply` (ou um `gcloud run deploy orcalink-worker --image=...`
-# pontual). Ver observação de trade-off na task 24.
+# O deploy contínuo (imagem + env) é feito pelo GitHub Actions
+# (.github/workflows/deploy.yml) junto com a API — mesma imagem, SERVICE_ROLE=worker.
+# O Terraform garante existência do serviço, ingress interno, timeout e IAM.
 resource "google_cloud_run_v2_service" "worker" {
   name     = "orcalink-worker"
   location = var.gcp_region
@@ -160,7 +160,11 @@ resource "google_cloud_run_v2_service" "worker" {
   lifecycle {
     ignore_changes = [
       client,
-      client_version
+      client_version,
+      # Gerenciados pelo GitHub Actions a cada push — ver comentário acima.
+      template[0].containers[0].image,
+      template[0].containers[0].env,
+      template[0].labels,
     ]
   }
 }
