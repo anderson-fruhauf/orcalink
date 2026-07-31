@@ -494,6 +494,49 @@ export class QuotationService {
     }) as Promise<Quotation>;
   }
 
+  /**
+   * Encerra cotações OPEN cujo deadline já passou.
+   * Usado pelo Cloud Scheduler via POST /api/tasks/expire-quotations.
+   * Roda sem TenantContext — varre todos os tenants.
+   */
+  async expireExpiredQuotations(): Promise<{ expiredCount: number }> {
+    return this.prisma.$transaction(async (tx: any) => {
+      const expired = await tx.quotation.findMany({
+        where: {
+          status: 'OPEN',
+          deadline: { lt: new Date() },
+        },
+        select: { id: true },
+      });
+
+      if (expired.length === 0) {
+        return { expiredCount: 0 };
+      }
+
+      const ids = expired.map((quotation: { id: string }) => quotation.id);
+
+      await tx.quotation.updateMany({
+        where: { id: { in: ids }, status: 'OPEN' },
+        data: { status: 'CLOSED' },
+      });
+
+      await tx.magicLink.updateMany({
+        where: { quotationId: { in: ids } },
+        data: { active: false },
+      });
+
+      await tx.quotationSupplier.updateMany({
+        where: {
+          quotationId: { in: ids },
+          responseStatus: 'PENDING',
+        },
+        data: { responseStatus: 'EXPIRED' },
+      });
+
+      return { expiredCount: ids.length };
+    });
+  }
+
   async duplicate(id: string) {
     const quotation = await this.prisma.quotation.findUnique({
       where: { id },

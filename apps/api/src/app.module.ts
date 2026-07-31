@@ -12,11 +12,14 @@ import { CategoryModule } from './modules/category/category.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { QuotationModule } from './modules/quotation/quotation.module.js';
 import { PortalModule } from './modules/portal/portal.module.js';
+import { TasksModule } from './modules/tasks/tasks.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
+
+const workerModules = process.env['SERVICE_ROLE'] === 'worker' ? [TasksModule] : [];
 
 @Module({
   imports: [
@@ -37,6 +40,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter.
     PortalModule,
     MailModule,
     WhatsappModule,
+    ...workerModules,
   ],
   controllers: [AppController],
   providers: [

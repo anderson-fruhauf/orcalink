@@ -25,6 +25,7 @@ describe('QuotationService', () => {
       findUnique: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
     quotationItem: {
@@ -623,6 +624,51 @@ describe('QuotationService', () => {
         data: { responseStatus: 'EXPIRED' },
       });
       expect(result.status).toBe('CLOSED');
+    });
+  });
+
+  describe('expireExpiredQuotations', () => {
+    it('should close OPEN quotations past deadline and mark pending suppliers as EXPIRED', async () => {
+      prismaService.quotation.findMany.mockResolvedValue([
+        { id: 'q-1' },
+        { id: 'q-2' },
+      ]);
+      prismaService.quotation.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.expireExpiredQuotations();
+
+      expect(prismaService.quotation.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'OPEN',
+          deadline: { lt: expect.any(Date) },
+        },
+        select: { id: true },
+      });
+      expect(prismaService.quotation.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['q-1', 'q-2'] }, status: 'OPEN' },
+        data: { status: 'CLOSED' },
+      });
+      expect(prismaService.magicLink.updateMany).toHaveBeenCalledWith({
+        where: { quotationId: { in: ['q-1', 'q-2'] } },
+        data: { active: false },
+      });
+      expect(prismaService.quotationSupplier.updateMany).toHaveBeenCalledWith({
+        where: {
+          quotationId: { in: ['q-1', 'q-2'] },
+          responseStatus: 'PENDING',
+        },
+        data: { responseStatus: 'EXPIRED' },
+      });
+      expect(result).toEqual({ expiredCount: 2 });
+    });
+
+    it('should return zero when there are no expired quotations', async () => {
+      prismaService.quotation.findMany.mockResolvedValue([]);
+
+      const result = await service.expireExpiredQuotations();
+
+      expect(prismaService.quotation.updateMany).not.toHaveBeenCalled();
+      expect(result).toEqual({ expiredCount: 0 });
     });
   });
 
