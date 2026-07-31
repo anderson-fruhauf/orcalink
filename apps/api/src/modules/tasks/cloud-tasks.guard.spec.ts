@@ -14,10 +14,18 @@ describe('CloudTasksGuard', () => {
   let guard: CloudTasksGuard;
   const originalEnv = process.env;
 
-  const createContext = (headers: Record<string, string | undefined>) =>
+  const createContext = (
+    headers: Record<string, string | undefined>,
+    extras: { hostname?: string; url?: string } = {},
+  ) =>
     ({
       switchToHttp: () => ({
-        getRequest: () => ({ headers }),
+        getRequest: () => ({
+          headers,
+          protocol: 'https',
+          hostname: extras.hostname ?? 'worker.example.com',
+          url: extras.url ?? '/api/tasks/expire-quotations',
+        }),
       }),
     }) as any;
 
@@ -51,9 +59,7 @@ describe('CloudTasksGuard', () => {
     });
 
     it('deve rejeitar quando o segredo está ausente ou inválido', async () => {
-      await expect(
-        guard.canActivate(createContext({})),
-      ).rejects.toThrow(
+      await expect(guard.canActivate(createContext({}))).rejects.toThrow(
         new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
       );
 
@@ -81,17 +87,21 @@ describe('CloudTasksGuard', () => {
   });
 
   describe('modo OIDC (produção)', () => {
+    const sa = 'tasks@orcalink.iam.gserviceaccount.com';
+
     beforeEach(() => {
       process.env['NODE_ENV'] = 'production';
       process.env['WORKER_URL'] = 'https://worker.example.com';
-      process.env['CLOUD_TASKS_INVOKER_SA'] =
-        'tasks@orcalink.iam.gserviceaccount.com';
+      process.env['CLOUD_TASKS_INVOKER_SA'] = sa;
     });
 
     it('deve aceitar token OIDC válido da SA esperada', async () => {
       mockVerifyIdToken.mockResolvedValue({
         getPayload: () => ({
-          email: 'tasks@orcalink.iam.gserviceaccount.com',
+          email: sa,
+          iss: 'https://accounts.google.com',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          aud: 'https://worker.example.com',
         }),
       });
 
@@ -102,13 +112,42 @@ describe('CloudTasksGuard', () => {
       expect(result).toBe(true);
       expect(mockVerifyIdToken).toHaveBeenCalledWith({
         idToken: 'valid-token',
-        audience: 'https://worker.example.com',
+        audience: expect.arrayContaining([
+          'https://worker.example.com',
+          'https://worker.example.com/api/tasks/expire-quotations',
+        ]),
       });
+    });
+
+    it('deve aceitar claims quando Google remove a assinatura do JWT', async () => {
+      const payload = {
+        email: sa,
+        iss: 'https://accounts.google.com',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        aud: 'https://worker.example.com',
+      };
+      const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+        'base64url',
+      );
+      const token = `eyJhbGciOiJSUzI1NiJ9.${encodedPayload}.SIGNATURE_REMOVED_BY_GOOGLE`;
+
+      mockVerifyIdToken.mockRejectedValue(new Error('Invalid token signature'));
+
+      const result = await guard.canActivate(
+        createContext({ authorization: `Bearer ${token}` }),
+      );
+
+      expect(result).toBe(true);
     });
 
     it('deve rejeitar token com SA diferente', async () => {
       mockVerifyIdToken.mockResolvedValue({
-        getPayload: () => ({ email: 'other@example.com' }),
+        getPayload: () => ({
+          email: 'other@example.com',
+          iss: 'https://accounts.google.com',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          aud: 'https://worker.example.com',
+        }),
       });
 
       await expect(
