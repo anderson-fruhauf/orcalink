@@ -27,6 +27,12 @@ resource "google_cloud_tasks_queue" "email_dispatch" {
     max_doublings      = 4
   }
 
+  # Registra CreateTask/DeleteTask/AttemptDispatch/AttemptResponse no Cloud Logging.
+  # Retenção: 30 dias (padrão do bucket _Default; armazenamento além disso é cobrado).
+  stackdriver_logging_config {
+    sampling_ratio = 1.0
+  }
+
   depends_on = [google_project_service.cloudtasks]
 }
 
@@ -50,6 +56,12 @@ resource "google_cloud_tasks_queue" "whatsapp_dispatch" {
     max_doublings      = 3
   }
 
+  # Registra CreateTask/DeleteTask/AttemptDispatch/AttemptResponse no Cloud Logging.
+  # Retenção: 30 dias (padrão do bucket _Default; armazenamento além disso é cobrado).
+  stackdriver_logging_config {
+    sampling_ratio = 1.0
+  }
+
   depends_on = [google_project_service.cloudtasks]
 }
 
@@ -71,7 +83,7 @@ resource "google_service_account_iam_member" "api_uses_invoker" {
 resource "google_cloud_scheduler_job" "expire_quotations" {
   name        = "orcalink-expire-quotations"
   description = "Encerra cotações OPEN com prazo vencido"
-  schedule    = "0 * * * *"
+  schedule    = "0 1 * * *"
   time_zone   = "America/Sao_Paulo"
   region      = var.gcp_region
   project     = var.gcp_project_id
