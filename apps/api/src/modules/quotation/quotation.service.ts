@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { createHmac, randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Prisma, Quotation } from '../../generated/prisma/client.js';
 import { CreateQuotationDto } from './dto/create-quotation.dto.js';
@@ -14,10 +14,7 @@ import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
 import { MailService } from '../mail/mail.service.js';
 import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
-import {
-  TASK_QUEUE,
-  type TaskQueue,
-} from '../tasks/task-queue.interface.js';
+import { TASK_QUEUE, type TaskQueue } from '../tasks/task-queue.interface.js';
 
 @Injectable()
 export class QuotationService {
@@ -351,11 +348,6 @@ export class QuotationService {
       quotation.suppliers.length,
     );
 
-    const secret =
-      process.env['MAGIC_LINK_SECRET'] ||
-      process.env['JWT_SECRET'] ||
-      'default-magic-link-secret';
-
     const updatedQuotation = (await this.prisma.$transaction(
       async (tx: any) => {
         const updated = await tx.quotation.update({
@@ -364,20 +356,18 @@ export class QuotationService {
         });
 
         for (const qs of quotation.suppliers) {
-          const token = createHmac('sha256', secret)
-            .update(qs.id)
-            .digest('hex');
+          await tx.magicLink.updateMany({
+            where: { quotationId: id, supplierId: qs.supplierId, active: true },
+            data: { active: false },
+          });
 
-          await tx.magicLink.upsert({
-            where: { token },
-            create: {
+          const token = randomBytes(32).toString('base64url');
+
+          await tx.magicLink.create({
+            data: {
               token,
               quotationId: id,
               supplierId: qs.supplierId,
-              expiresAt: quotation.deadline,
-            },
-            update: {
-              active: true,
               expiresAt: quotation.deadline,
             },
           });

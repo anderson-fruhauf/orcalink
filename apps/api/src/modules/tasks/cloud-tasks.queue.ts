@@ -40,11 +40,7 @@ export class CloudTasksQueue implements TaskQueue {
     const workerUrl = this.resolveWorkerUrl();
     this.assertConfigured(workerUrl);
 
-    const parent = this.client.queuePath(
-      this.projectId,
-      this.location,
-      queue,
-    );
+    const parent = this.client.queuePath(this.projectId, this.location, queue);
     const url = `${workerUrl}${QUEUE_ROUTE[queue]}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

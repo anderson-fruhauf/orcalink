@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksController } from './tasks.controller.js';
 import { QuotationService } from '../quotation/quotation.service.js';

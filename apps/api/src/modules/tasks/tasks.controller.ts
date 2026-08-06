@@ -29,10 +29,7 @@ export class TasksController {
 
   @Post('email-dispatch')
   @HttpCode(HttpStatus.OK)
-  async emailDispatch(
-    @Body() body: EmailDispatchDto,
-    @Req() request: Request,
-  ) {
+  async emailDispatch(@Body() body: EmailDispatchDto, @Req() request: Request) {
     this.logTask('email-dispatch', request, {
       tenantId: body.tenantId,
       quotationSupplierId: body.quotationSupplierId,

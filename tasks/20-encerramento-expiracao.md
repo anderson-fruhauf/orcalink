@@ -14,7 +14,7 @@ Encerrar cotações manualmente ou automaticamente quando o prazo expira.
 ### Job de Expiração Automática
 - **Cloud Scheduler** chamando `POST /api/tasks/expire-quotations` no worker privado com token OIDC
   (sem `@nestjs/schedule`, sem processo vivo — ver task 24)
-- Roda a cada hora (`0 * * * *`, timezone `America/Sao_Paulo`)
+- Roda diariamente às 1h (`0 1 * * *`, timezone `America/Sao_Paulo`)
 - Busca cotações OPEN com `deadline < now()`
 - Executa mesma lógica do encerramento manual
 
