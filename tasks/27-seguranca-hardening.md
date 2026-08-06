@@ -5,7 +5,7 @@ Corrigir vulnerabilidades remanescentes da auditoria de segurança não cobertas
 
 ## Contexto
 Issues existentes já cobrem:
-- **#46** — Magic Link com token aleatório (S-001)
+- **#46** — Magic Link com token aleatório (S-001) ✅ **concluído**
 - **#47** — Secrets em Terraform/Docker (S-002, S-012)
 - **#48** — Isolamento multi-tenant no Resend/IDOR (S-006)
 - **#49** — Sanitização HTML nos emails (S-007)
