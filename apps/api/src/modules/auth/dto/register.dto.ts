@@ -3,15 +3,17 @@ import { IsNotEmpty, IsString, MinLength, MaxLength } from 'class-validator';
 export class RegisterDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(2, { message: 'Name must be at least 2 characters long' })
-  @MaxLength(255, { message: 'Name must be at most 255 characters long' })
+  @MinLength(2, { message: 'O nome deve ter no mínimo 2 caracteres.' })
+  @MaxLength(255, { message: 'O nome deve ter no máximo 255 caracteres.' })
   name: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(2, { message: 'Company name must be at least 2 characters long' })
+  @MinLength(2, {
+    message: 'O nome da empresa deve ter no mínimo 2 caracteres.',
+  })
   @MaxLength(255, {
-    message: 'Company name must be at most 255 characters long',
+    message: 'O nome da empresa deve ter no máximo 255 caracteres.',
   })
   companyName: string;
 }

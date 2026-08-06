@@ -24,6 +24,24 @@ enum SupplierResponseStatus {
   EXPIRED
 }
 
+enum DispatchChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum DispatchStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum WhatsappConnectionState {
+  DISCONNECTED
+  QR_PENDING
+  CONNECTED
+  ERROR
+}
+
 model Tenant {
   id        String   @id @default(uuid())
   name      String
@@ -31,11 +49,40 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users      User[]
-  categories Category[]
-  products   Product[]
-  suppliers  Supplier[]
-  quotations Quotation[]
+  users           User[]
+  categories      Category[]
+  products        Product[]
+  suppliers       Supplier[]
+  quotations      Quotation[]
+  whatsappSession WhatsappSession?
+}
+
+model WhatsappSession {
+  id              String                  @id @default(uuid())
+  tenantId        String                  @unique
+  state           WhatsappConnectionState @default(DISCONNECTED)
+  connectedNumber String?
+  creds           Json?
+  lastConnectedAt DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  authKeys WhatsappAuthKey[]
+}
+
+model WhatsappAuthKey {
+  id        String   @id @default(uuid())
+  tenantId  String
+  category  String
+  keyId     String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  session WhatsappSession @relation(fields: [tenantId], references: [tenantId])
+
+  @@unique([tenantId, category, keyId])
+  @@index([tenantId])
 }
 
 model User {
@@ -82,15 +129,16 @@ model Product {
 }
 
 model Supplier {
-  id          String   @id @default(uuid())
-  tenantId    String
-  name        String
-  document    String?
-  contactName String?
-  email       String
-  phone       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String          @id @default(uuid())
+  tenantId         String
+  name             String
+  document         String?
+  contactName      String?
+  email            String
+  phone            String?
+  preferredChannel DispatchChannel @default(EMAIL)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   tenant     Tenant              @relation(fields: [tenantId], references: [id])
   categories SupplierCategory[]
@@ -144,7 +192,12 @@ model QuotationSupplier {
   id             String                 @id @default(uuid())
   quotationId    String
   supplierId     String
+  channel        DispatchChannel        @default(EMAIL)
+  dispatchStatus DispatchStatus         @default(QUEUED)
   sentAt         DateTime               @default(now())
+  emailError     String?
+  whatsappSentAt DateTime?
+  whatsappError  String?
   responseStatus SupplierResponseStatus @default(PENDING)
 
   quotation Quotation @relation(fields: [quotationId], references: [id])

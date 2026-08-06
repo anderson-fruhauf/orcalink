@@ -1,0 +1,30 @@
+# Copie para terraform.tfvars (gitignored) e preencha com os valores reais.
+# cp terraform.tfvars.example terraform.tfvars
+
+gcp_project_id = "orcalink-534b8"
+gcp_region     = "us-central1"
+
+# URL de conexão com o PostgreSQL gerenciado (Neon ou Supabase)
+database_url = "postgresql://usuario:senha@host/orcalink?sslmode=require"
+
+# Imagem publicada no Artifact Registry (repository_url do output + tag)
+container_image = "us-central1-docker.pkg.dev/orcalink-534b8/orcalink-api/api:latest"
+
+worker_timeout_seconds = 900
+
+# Gere um valor forte, ex.: openssl rand -base64 48
+jwt_secret = "troque-em-producao-para-um-segredo-forte"
+
+# Chave de API do Resend (painel do Resend → API Keys)
+resend_api_key    = "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+resend_from_email = "onboarding@resend.dev"
+
+# URL pública do frontend (Firebase Hosting) — usada no link do Magic Link
+app_url = "https://orcalink-534b8.web.app"
+
+# WhatsApp (P1) — só o worker usa; deixe desabilitado até a task 23 entrar em produção
+whatsapp_enabled                    = false
+whatsapp_credentials_encryption_key = ""
+whatsapp_send_throttle_ms           = 2000
+whatsapp_connect_timeout_ms         = 15000
+whatsapp_pair_timeout_ms            = 120000

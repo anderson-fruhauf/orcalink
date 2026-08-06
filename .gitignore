@@ -6,6 +6,7 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+.gh-config
 
 # Agent files
 .agents/

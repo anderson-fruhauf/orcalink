@@ -3,6 +3,7 @@ import { QuotationService } from './quotation.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { TASK_QUEUE } from '../tasks/task-queue.interface.js';
 
 describe('QuotationService', () => {
   let service: QuotationService;
@@ -13,6 +14,11 @@ describe('QuotationService', () => {
     sendEmail: jest.fn(),
   };
 
+  const mockTaskQueue = {
+    enqueue: jest.fn(),
+    isHealthy: jest.fn(),
+  };
+
   const mockPrismaService = {
     quotation: {
       create: jest.fn(),
@@ -20,6 +26,7 @@ describe('QuotationService', () => {
       findUnique: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
     quotationItem: {
@@ -34,6 +41,7 @@ describe('QuotationService', () => {
       createMany: jest.fn(),
       updateMany: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     magicLink: {
       deleteMany: jest.fn(),
@@ -55,6 +63,7 @@ describe('QuotationService', () => {
         QuotationService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: MailService, useValue: mockMailService },
+        { provide: TASK_QUEUE, useValue: mockTaskQueue },
       ],
     }).compile();
 
@@ -222,7 +231,7 @@ describe('QuotationService', () => {
 
       await expect(service.update('q-1', updateDto)).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser editadas.',
+          'Apenas cotações em rascunho podem ser editadas.',
         ),
       );
     });
@@ -259,7 +268,7 @@ describe('QuotationService', () => {
 
       await expect(service.remove('q-1')).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser excluídas.',
+          'Apenas cotações em rascunho podem ser excluídas.',
         ),
       );
     });
@@ -299,7 +308,7 @@ describe('QuotationService', () => {
 
       await expect(service.addItem('q-1', itemDto)).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+          'Apenas cotações em rascunho podem ser modificadas.',
         ),
       );
     });
@@ -372,7 +381,7 @@ describe('QuotationService', () => {
       prismaService.quotationItem.findFirst.mockResolvedValue(null);
 
       await expect(service.removeItem('q-1', 'qi-1')).rejects.toThrow(
-        new NotFoundException('Item da cotação não encontrado.'),
+        new NotFoundException('Item não encontrado.'),
       );
     });
   });
@@ -399,8 +408,8 @@ describe('QuotationService', () => {
         suppliers: [{ supplierId: 's-1' }, { supplierId: 's-2' }],
       });
       prismaService.supplier.findMany.mockResolvedValue([
-        { id: 's-1' },
-        { id: 's-2' },
+        { id: 's-1', preferredChannel: 'EMAIL' },
+        { id: 's-2', preferredChannel: 'WHATSAPP' },
       ]);
 
       const result = await service.associateSuppliers('q-1', assocDto);
@@ -410,8 +419,8 @@ describe('QuotationService', () => {
       });
       expect(prismaService.quotationSupplier.createMany).toHaveBeenCalledWith({
         data: [
-          { quotationId: 'q-1', supplierId: 's-1' },
-          { quotationId: 'q-1', supplierId: 's-2' },
+          { quotationId: 'q-1', supplierId: 's-1', channel: 'EMAIL' },
+          { quotationId: 'q-1', supplierId: 's-2', channel: 'WHATSAPP' },
         ],
       });
       expect(result.suppliers).toHaveLength(2);
@@ -455,7 +464,7 @@ describe('QuotationService', () => {
         status: 'DRAFT',
         deadline: deadlineDate,
         items: [{ id: 'qi-1' }],
-        suppliers: [{ id: 'qs-1', supplierId: 's-1' }],
+        suppliers: [{ id: 'qs-1', supplierId: 's-1', channel: 'EMAIL' }],
       });
       prismaService.quotation.update.mockResolvedValue({
         id: 'q-1',
@@ -473,8 +482,57 @@ describe('QuotationService', () => {
         data: { status: 'OPEN' },
       });
       expect(prismaService.magicLink.upsert).toHaveBeenCalled();
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationSupplierId: 'qs-1',
+        }),
+        expect.objectContaining({
+          dedupeKey: expect.stringContaining('email:qs-1:'),
+        }),
+      );
+      expect(mockMailService.sendEmail).not.toHaveBeenCalled();
       expect(result.status).toBe('OPEN');
+    });
+
+    it('should enqueue whatsapp and email tasks without sending inline', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 'tenant-123',
+        status: 'DRAFT',
+        deadline: new Date(),
+        items: [{ id: 'qi-1' }],
+        suppliers: [
+          { id: 'qs-1', supplierId: 's-1', channel: 'WHATSAPP' },
+          { id: 'qs-2', supplierId: 's-2', channel: 'EMAIL' },
+        ],
+      });
+      prismaService.quotation.update.mockResolvedValue({
+        id: 'q-1',
+        status: 'OPEN',
+      });
+
+      await service.publish('q-1');
+
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationSupplierId: 'qs-2',
+        }),
+        expect.any(Object),
+      );
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'whatsapp-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationId: 'q-1',
+          quotationSupplierIds: ['qs-1'],
+        }),
+        expect.any(Object),
+      );
+      expect(mockMailService.sendEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -516,7 +574,7 @@ describe('QuotationService', () => {
 
       await expect(service.resend('q-1', 's-1')).rejects.toThrow(
         new BadRequestException(
-          'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+          'Apenas cotações abertas podem ter e-mails reenviados.',
         ),
       );
     });
@@ -540,12 +598,13 @@ describe('QuotationService', () => {
       );
     });
 
-    it('should check limit, enqueue email and return success if valid', async () => {
+    it('should check limit, enqueue invite and return success if valid', async () => {
       prismaService.quotation.findUnique.mockResolvedValue(openQuotation);
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
         supplierId: 's-1',
+        channel: 'WHATSAPP',
         responseStatus: 'PENDING',
         quotation: {
           tenantId: 'tenant-123',
@@ -559,7 +618,15 @@ describe('QuotationService', () => {
         'tenant-123',
         1,
       );
-      expect(mockMailService.sendEmail).toHaveBeenCalledWith('qs-1');
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'whatsapp-dispatch',
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          quotationId: 'q-1',
+          quotationSupplierIds: ['qs-1'],
+        }),
+        expect.any(Object),
+      );
       expect(result).toEqual({ success: true });
     });
   });
@@ -590,6 +657,51 @@ describe('QuotationService', () => {
         data: { responseStatus: 'EXPIRED' },
       });
       expect(result.status).toBe('CLOSED');
+    });
+  });
+
+  describe('expireExpiredQuotations', () => {
+    it('should close OPEN quotations past deadline and mark pending suppliers as EXPIRED', async () => {
+      prismaService.quotation.findMany.mockResolvedValue([
+        { id: 'q-1' },
+        { id: 'q-2' },
+      ]);
+      prismaService.quotation.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.expireExpiredQuotations();
+
+      expect(prismaService.quotation.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'OPEN',
+          deadline: { lt: expect.any(Date) },
+        },
+        select: { id: true },
+      });
+      expect(prismaService.quotation.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['q-1', 'q-2'] }, status: 'OPEN' },
+        data: { status: 'CLOSED' },
+      });
+      expect(prismaService.magicLink.updateMany).toHaveBeenCalledWith({
+        where: { quotationId: { in: ['q-1', 'q-2'] } },
+        data: { active: false },
+      });
+      expect(prismaService.quotationSupplier.updateMany).toHaveBeenCalledWith({
+        where: {
+          quotationId: { in: ['q-1', 'q-2'] },
+          responseStatus: 'PENDING',
+        },
+        data: { responseStatus: 'EXPIRED' },
+      });
+      expect(result).toEqual({ expiredCount: 2 });
+    });
+
+    it('should return zero when there are no expired quotations', async () => {
+      prismaService.quotation.findMany.mockResolvedValue([]);
+
+      const result = await service.expireExpiredQuotations();
+
+      expect(prismaService.quotation.updateMany).not.toHaveBeenCalled();
+      expect(result).toEqual({ expiredCount: 0 });
     });
   });
 

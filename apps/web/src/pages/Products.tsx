@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Pencil, Trash2, AlertTriangle, Package, ChevronDown } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import { Modal } from '../components/Modal.js';
 import '../styles/products.css';
@@ -116,11 +117,7 @@ export const Products: React.FC = () => {
       setDeletingProduct(null);
       fetchProducts();
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        'Erro ao excluir produto.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, 'Erro ao excluir produto.'));
       setDeletingProduct(null);
     }
   };

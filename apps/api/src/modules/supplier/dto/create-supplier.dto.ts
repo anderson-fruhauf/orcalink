@@ -5,8 +5,10 @@ import {
   IsEmail,
   IsArray,
   IsUUID,
+  IsEnum,
   MaxLength,
 } from 'class-validator';
+import { DispatchChannel } from '../../../generated/prisma/client.js';
 
 export class CreateSupplierDto {
   @IsString()
@@ -39,6 +41,12 @@ export class CreateSupplierDto {
   @IsOptional()
   @MaxLength(50, { message: 'O telefone deve ter no máximo 50 caracteres.' })
   phone?: string;
+
+  @IsEnum(DispatchChannel, {
+    message: 'O canal preferido deve ser E-mail ou WhatsApp.',
+  })
+  @IsOptional()
+  preferredChannel?: DispatchChannel;
 
   @IsArray({ message: 'As categorias devem ser informadas como uma lista.' })
   @IsUUID('4', {

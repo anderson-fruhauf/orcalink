@@ -5,6 +5,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { TenantContext } from '../../common/context/tenant-context.js';
+import {
+  NOT_FOUND_MESSAGE,
+  PLAN_LIMIT_MESSAGE,
+} from '../../common/constants/error-messages.js';
 import { Resend } from 'resend';
 
 @Injectable()
@@ -31,7 +35,7 @@ export class MailService {
     });
 
     if (!tenant) {
-      throw new NotFoundException('Tenant não encontrado');
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
 
     if (tenant.plan === 'FREE') {
@@ -52,16 +56,7 @@ export class MailService {
       });
 
       if (current + additionalCount > 20) {
-        throw new ForbiddenException({
-          statusCode: 403,
-          message:
-            'Limite do plano Free atingido. Faça upgrade para o plano Pro.',
-          error: 'Forbidden',
-          limit: 20,
-          current,
-          resource: 'emails',
-          plan: 'FREE',
-        });
+        throw new ForbiddenException(PLAN_LIMIT_MESSAGE);
       }
     }
   }
@@ -249,10 +244,13 @@ export class MailService {
         );
       }
 
-      // Update sentAt in QuotationSupplier
       await this.prisma.quotationSupplier.update({
         where: { id: qs.id },
-        data: { sentAt: new Date() },
+        data: {
+          sentAt: new Date(),
+          dispatchStatus: 'SENT',
+          emailError: null,
+        },
       });
     });
   }

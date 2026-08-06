@@ -158,7 +158,7 @@ export class ProductService {
 
     if (linkedOpenQuotation) {
       throw new ConflictException(
-        'Não é possível excluir um produto vinculado a uma cotação ativa (status OPEN).',
+        'Não é possível excluir um produto vinculado a uma cotação ativa.',
       );
     }
 

@@ -203,6 +203,106 @@
   padding-top: var(--space-5);
 }
 
+/* ===== Channel Preference Toggle ===== */
+.channel-toggle {
+  display: flex;
+  width: 100%;
+  padding: 4px;
+  gap: 4px;
+  background: var(--neutral-100);
+  border: 1.5px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+}
+
+.channel-toggle-option {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 4px);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.channel-toggle-option:hover:not(.active):not(:disabled) {
+  background: var(--bg-card);
+  color: var(--text-body);
+}
+
+.channel-toggle-option.active {
+  font-weight: 600;
+}
+
+.channel-toggle-option.active-email {
+  background: var(--primary-50);
+  color: var(--primary-700);
+  box-shadow: inset 0 0 0 2px var(--primary-500);
+}
+
+.channel-toggle-option.active-email svg {
+  color: var(--primary-600);
+}
+
+.channel-toggle-option.active-whatsapp {
+  background: #e8faf0;
+  color: #128c4b;
+  box-shadow: inset 0 0 0 2px #25d366;
+}
+
+.channel-toggle-option.active-whatsapp svg {
+  color: #25d366;
+}
+
+.channel-toggle-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.channel-toggle--inline {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+/* ===== Preferred Channel Badge (list) ===== */
+.channel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.channel-badge-email {
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+}
+
+.channel-badge-whatsapp {
+  background: var(--success-50);
+  color: var(--success-700);
+}
+
 /* ===== Custom Category Multi-select Component ===== */
 .category-multi-select {
   position: relative;

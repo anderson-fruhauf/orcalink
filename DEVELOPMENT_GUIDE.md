@@ -51,7 +51,7 @@ apps/api/
 
 ### Mocking
 
-- Use `jest.mock()` para dependências externas (Resend, BullMQ)
+- Use `jest.mock()` para dependências externas (Resend, Cloud Tasks, Baileys)
 - Use banco de dados de teste real (PostgreSQL via Docker) para testes de integração
 - **Nunca** mocke o Prisma em testes de integração — use um banco separado com `DATABASE_URL_TEST`
 
@@ -208,7 +208,100 @@ components/
 { "data": [...], "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 } }
 
 // Erro
-{ "statusCode": 400, "message": "Validation failed", "errors": [...], "correlationId": "abc-123" }
+{ "statusCode": 400, "message": "Dados inválidos. Verifique os campos informados.", "error": "RequisicaoInvalida", "correlationId": "abc-123" }
+```
+
+### Mensagens de Erro
+
+Todas as mensagens expostas ao usuário (API e frontend) devem estar em **português** e **não revelar detalhes internos** da aplicação.
+
+#### Regras obrigatórias
+
+- **Sempre** escrever mensagens de erro em português claro e amigável
+- **Nunca** expor nomes de tabelas, recursos internos, enums de banco ou stack traces na resposta da API
+- **Nunca** mencionar tecnologias internas (Firebase, Prisma, Tenant, UUID, token JWT, etc.) em mensagens ao usuário
+- **Nunca** incluir IDs internos, SQL ou detalhes de infraestrutura em mensagens de erro
+- **Nunca** repassar `error.response.data.message` diretamente no frontend sem sanitização
+- **Sempre** usar constantes centralizadas no backend (`apps/api/src/common/constants/error-messages.ts`)
+- **Sempre** usar `getApiErrorMessage()` no frontend (`apps/web/src/lib/errors.ts`)
+- **Sempre** registrar detalhes técnicos apenas nos logs do servidor
+
+#### O que pode ser exposto
+
+| Permitido | Proibido |
+|---|---|
+| Nomes de entidades de negócio (categoria, produto, cotação) | Nomes de tabelas (`QuotationSupplier`, `MagicLink`) |
+| Regras de negócio compreensíveis | Enums internos (`DRAFT`, `OPEN`, `PENDING`) |
+| Mensagens de validação de formulário (DTOs) | Termos técnicos (`Unauthorized`, `Forbidden`, `Tenant`) |
+| Limite de plano com CTA de upgrade | Metadados internos (`limit`, `current`, `resource`, `plan`) |
+
+#### Backend (NestJS)
+
+```ts
+// ❌ ERRADO — expõe tecnologia interna
+throw new UnauthorizedException('Invalid Firebase token');
+throw new NotFoundException('User not registered in local database');
+throw new BadRequestException(`Item inválido na proposta: ${item.id}`);
+throw new ForbiddenException({
+  message: 'Limite atingido',
+  resource: 'suppliers',  // vaza recurso interno
+  plan: 'FREE',
+});
+
+// ✅ CERTO — genérico, em português, sem vazamento
+import { AUTH_UNAUTHORIZED_MESSAGE } from '../../common/constants/error-messages.js';
+
+throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
+throw new NotFoundException('Recurso não encontrado.');
+throw new BadRequestException('Item inválido na proposta.');
+throw new ForbiddenException(PLAN_LIMIT_MESSAGE);
+```
+
+Constantes disponíveis em `error-messages.ts`:
+
+| Constante | Mensagem |
+|---|---|
+| `AUTH_UNAUTHORIZED_MESSAGE` | Não autorizado. |
+| `AUTH_CONFLICT_MESSAGE` | Não foi possível concluir o cadastro. |
+| `PLAN_LIMIT_MESSAGE` | Limite do plano Free atingido. Faça upgrade para o plano Pro. |
+| `NOT_FOUND_MESSAGE` | Recurso não encontrado. |
+| `SERVICE_UNAVAILABLE_MESSAGE` | Serviço temporariamente indisponível. |
+| `INTERNAL_ERROR_MESSAGE` | Erro interno do servidor. |
+
+Erros 500 são sempre sanitizados pelo `GlobalExceptionFilter` — o cliente recebe apenas `INTERNAL_ERROR_MESSAGE`.
+
+#### Frontend (React)
+
+```tsx
+// ❌ ERRADO — repassa mensagem crua da API
+toast.error(error.response?.data?.message || 'Erro ao salvar.');
+
+// ✅ CERTO — usa utilitário que sanitiza e traduz
+import { getApiErrorMessage } from '../lib/errors.js';
+
+toast.error(getApiErrorMessage(error, 'Erro ao salvar produto.'));
+```
+
+O `getApiErrorMessage()` mapeia status HTTP para mensagens seguras:
+
+| Status | Mensagem padrão |
+|---|---|
+| `401` | Sessão expirada ou credenciais inválidas. |
+| `403` | Limite do plano Free atingido. Faça upgrade para o plano Pro. |
+| `404` | Usa o fallback contextual da página |
+| `409` | Não foi possível concluir a operação. Verifique os dados informados. |
+| `400` | Repassa mensagem de validação apenas se for segura (sem termos técnicos) |
+
+#### DTOs (class-validator)
+
+Mensagens de validação também devem estar em português:
+
+```ts
+// ❌ ERRADO
+@MinLength(2, { message: 'Name must be at least 2 characters long' })
+
+// ✅ CERTO
+@MinLength(2, { message: 'O nome deve ter no mínimo 2 caracteres.' })
 ```
 
 ### Status HTTP
@@ -270,6 +363,7 @@ chore(docker): atualizar versão do PostgreSQL
 - **Nunca** commitar `.env`, secrets ou API keys
 - **Nunca** logar dados sensíveis (senhas, tokens, CPFs)
 - **Nunca** retornar senhas ou tokens internos na resposta da API
+- **Nunca** expor detalhes internos em mensagens de erro (ver seção 4 — Mensagens de Erro)
 - **Sempre** usar `ValidationPipe` com `whitelist: true`
 - **Sempre** filtrar por `tenantId` em toda query
 - **Sempre** usar parâmetros preparados (Prisma já faz isso)
@@ -299,6 +393,8 @@ Antes de considerar uma task como concluída:
 - [ ] DTOs com validação completa
 - [ ] Queries filtradas por `tenantId`
 - [ ] Tratamento de erros adequado
+- [ ] Mensagens de erro em português, sem vazamento de detalhes internos
+- [ ] Frontend usa `getApiErrorMessage()` para exibir erros da API
 - [ ] Logs em pontos relevantes
 - [ ] Commit segue Conventional Commits
 - [ ] Sem secrets no código

@@ -4,6 +4,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import {
+  NOT_FOUND_MESSAGE,
+  SERVICE_UNAVAILABLE_MESSAGE,
+} from './../src/common/constants/error-messages.js';
 
 describe('Observability (e2e)', () => {
   let app: INestApplication<App>;
@@ -62,11 +66,8 @@ describe('Observability (e2e)', () => {
         .expect((res) => {
           expect(res.body).toEqual({
             statusCode: HttpStatus.SERVICE_UNAVAILABLE,
-            message: {
-              status: 'error',
-              database: 'down',
-            },
-            error: 'ServiceUnavailableException',
+            message: SERVICE_UNAVAILABLE_MESSAGE,
+            error: 'Indisponivel',
             correlationId: expect.any(String),
           });
         });
@@ -82,8 +83,8 @@ describe('Observability (e2e)', () => {
           expect(res.headers['x-correlation-id']).toBeDefined();
           expect(res.body).toEqual({
             statusCode: HttpStatus.NOT_FOUND,
-            message: 'Cannot GET /non-existent-route-123',
-            error: 'NotFoundException',
+            message: NOT_FOUND_MESSAGE,
+            error: 'NaoEncontrado',
             correlationId: res.headers['x-correlation-id'],
           });
         });

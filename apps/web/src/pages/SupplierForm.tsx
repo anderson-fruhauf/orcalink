@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { X, ChevronDown, ArrowLeft } from 'lucide-react';
+import { X, ChevronDown, ArrowLeft, Mail, MessageCircle } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import { formatDocument, formatPhone } from '../utils/masks.js';
 import '../styles/suppliers.css';
@@ -18,6 +19,8 @@ interface SupplierCategory {
   };
 }
 
+type DispatchChannel = 'EMAIL' | 'WHATSAPP';
+
 interface SupplierResponse {
   id: string;
   name: string;
@@ -25,6 +28,7 @@ interface SupplierResponse {
   contactName?: string;
   email: string;
   phone?: string;
+  preferredChannel?: DispatchChannel;
   categories?: SupplierCategory[];
 }
 
@@ -38,6 +42,7 @@ export const SupplierForm: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [preferredChannel, setPreferredChannel] = useState<DispatchChannel>('EMAIL');
   
   // Selected categories state (array of Category objects)
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
@@ -87,6 +92,7 @@ export const SupplierForm: React.FC = () => {
       setContactName(data.contactName || '');
       setEmail(data.email || '');
       setPhone(data.phone ? formatPhone(data.phone) : '');
+      setPreferredChannel(data.preferredChannel || 'EMAIL');
       
       if (data.categories) {
         setSelectedCategories(data.categories.map((sc) => sc.category));
@@ -149,6 +155,7 @@ export const SupplierForm: React.FC = () => {
       contactName: contactName.trim() || undefined,
       email: email.trim(),
       phone: rawPhone || undefined,
+      preferredChannel,
       categoryIds,
     };
 
@@ -162,15 +169,11 @@ export const SupplierForm: React.FC = () => {
         toast.success('Fornecedor criado com sucesso.');
       }
       navigate('/dashboard/suppliers');
-    } catch (error) {
-      const err = error as { response?: { status?: number; data?: { message?: string } } };
-      if (err.response?.status === 403) {
-        // Plan limit reached
-        const msg = err.response?.data?.message || 'Limite do plano atingido. Faça upgrade para o plano Pro.';
-        toast.error(msg, { duration: 5000 });
+    } catch (error: any) {
+      if (error?.response?.status === 403) {
+        toast.error(getApiErrorMessage(error, 'Limite do plano atingido. Faça upgrade para o plano Pro.'), { duration: 5000 });
       } else {
-        const message = err.response?.data?.message || 'Erro ao salvar o fornecedor.';
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, 'Erro ao salvar o fornecedor.'));
       }
     } finally {
       setSaving(false);
@@ -291,6 +294,33 @@ export const SupplierForm: React.FC = () => {
                 value={phone}
                 onChange={handlePhoneChange}
               />
+            </div>
+
+            <div className="form-group form-group-full">
+              <label className="form-label">Canal de Envio Preferido</label>
+              <div className="channel-toggle channel-toggle--inline" role="group" aria-label="Canal de envio preferido">
+                <button
+                  type="button"
+                  className={`channel-toggle-option ${preferredChannel === 'EMAIL' ? 'active active-email' : ''}`}
+                  onClick={() => setPreferredChannel('EMAIL')}
+                  aria-pressed={preferredChannel === 'EMAIL'}
+                >
+                  <Mail size={16} strokeWidth={1.5} />
+                  <span>E-mail</span>
+                </button>
+                <button
+                  type="button"
+                  className={`channel-toggle-option ${preferredChannel === 'WHATSAPP' ? 'active active-whatsapp' : ''}`}
+                  onClick={() => setPreferredChannel('WHATSAPP')}
+                  aria-pressed={preferredChannel === 'WHATSAPP'}
+                >
+                  <MessageCircle size={16} strokeWidth={1.5} />
+                  <span>WhatsApp</span>
+                </button>
+              </div>
+              <p className="form-hint">
+                Define o canal padrão usado para enviar as cotações a este fornecedor. Pode ser alterado por cotação antes do envio.
+              </p>
             </div>
 
             <div className="form-group form-group-full">

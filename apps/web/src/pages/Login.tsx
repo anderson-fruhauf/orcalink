@@ -38,7 +38,7 @@ export const Login: React.FC = () => {
       const session = await signIn(data.email, data.password);
       if (!session.backendUser) {
         setPrefilledEmail(data.email);
-        toast.error('Usuário não localizado no banco de dados local. Conclua o registro.');
+        toast.error('Conta não encontrada. Conclua o registro para continuar.');
         navigate('/register');
       } else {
         toast.success('Bem-vindo de volta ao Orçalink!');
@@ -55,8 +55,8 @@ export const Login: React.FC = () => {
         msg = 'E-mail ou senha incorretos.';
       } else if (error.code === 'auth/too-many-requests') {
         msg = 'Acesso temporariamente bloqueado devido a muitas tentativas. Tente mais tarde.';
-      } else if (error.response?.data?.message) {
-        msg = error.response.data.message;
+      } else if (error.response?.status === 409) {
+        msg = 'Não foi possível concluir o cadastro. Verifique os dados informados.';
       }
       toast.error(msg);
     }

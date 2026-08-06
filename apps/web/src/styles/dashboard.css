@@ -351,6 +351,29 @@
   line-height: 1;
 }
 
+.kpi-card-value--status {
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.kpi-card-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.kpi-card-link {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--primary-600);
+}
+
+.kpi-card:hover .kpi-card-link {
+  color: var(--primary-700);
+}
+
 /* Dot pulsante para Pendentes */
 .pulse-dot {
   display: inline-block;
@@ -378,6 +401,17 @@
 .dashboard-welcome p {
   font-size: var(--text-sm);
   color: var(--text-muted);
+}
+
+.dashboard-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.dashboard-details-grid .integration-card {
+  height: 100%;
 }
 
 /* ===== Skeleton Loading ===== */

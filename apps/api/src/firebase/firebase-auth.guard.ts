@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AUTH_UNAUTHORIZED_MESSAGE } from '../common/constants/error-messages.js';
 
 class SimpleLruCache<K, V> {
   private readonly cache = new Map<K, V>();
@@ -88,13 +89,13 @@ export class FirebaseAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
-      throw new UnauthorizedException('Missing authorization header');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     const [type, token] = authHeader.split(' ');
 
     if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header format');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     try {
@@ -115,9 +116,7 @@ export class FirebaseAuthGuard implements CanActivate {
       }
 
       if (!user) {
-        throw new UnauthorizedException(
-          'User not registered in local database',
-        );
+        throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
       }
 
       request.user = {
@@ -136,7 +135,7 @@ export class FirebaseAuthGuard implements CanActivate {
         'Firebase auth verification failed',
         error instanceof Error ? error.stack : String(error),
       );
-      throw new UnauthorizedException('Invalid Firebase token');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
   }
 }

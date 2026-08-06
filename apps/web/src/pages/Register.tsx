@@ -73,8 +73,8 @@ export const Register: React.FC = () => {
         msg = 'E-mail inválido.';
       } else if (error.code === 'auth/weak-password') {
         msg = 'A senha escolhida é muito fraca.';
-      } else if (error.response?.data?.message) {
-        msg = error.response.data.message;
+      } else if (error.response?.status === 409) {
+        msg = 'Não foi possível concluir o cadastro. Verifique os dados informados.';
       }
       toast.error(msg);
     }

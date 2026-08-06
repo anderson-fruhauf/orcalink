@@ -1,8 +1,10 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { createHmac, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { Prisma, Quotation } from '../../generated/prisma/client.js';
 import { CreateQuotationDto } from './dto/create-quotation.dto.js';
@@ -10,14 +12,19 @@ import { UpdateQuotationDto } from './dto/update-quotation.dto.js';
 import { QueryQuotationDto } from './dto/query-quotation.dto.js';
 import { CreateQuotationItemDto } from './dto/create-quotation-item.dto.js';
 import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
-import { createHmac } from 'crypto';
 import { MailService } from '../mail/mail.service.js';
+import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
+import {
+  TASK_QUEUE,
+  type TaskQueue,
+} from '../tasks/task-queue.interface.js';
 
 @Injectable()
 export class QuotationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    @Inject(TASK_QUEUE) private readonly taskQueue: TaskQueue,
   ) {}
 
   async create(dto: CreateQuotationDto): Promise<Quotation> {
@@ -130,7 +137,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser editadas.',
+        'Apenas cotações em rascunho podem ser editadas.',
       );
     }
 
@@ -147,7 +154,7 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser excluídas.',
+        'Apenas cotações em rascunho podem ser excluídas.',
       );
     }
 
@@ -163,7 +170,7 @@ export class QuotationService {
     const quotation = await this.findOne(quotationId);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
@@ -198,7 +205,7 @@ export class QuotationService {
     const quotation = await this.findOne(quotationId);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
@@ -206,7 +213,7 @@ export class QuotationService {
       where: { id: itemId, quotationId },
     });
     if (!item) {
-      throw new NotFoundException('Item da cotação não encontrado.');
+      throw new NotFoundException('Item não encontrado.');
     }
 
     return this.prisma.quotationItem.delete({
@@ -218,12 +225,14 @@ export class QuotationService {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser modificadas.',
+        'Apenas cotações em rascunho podem ser modificadas.',
       );
     }
 
+    let suppliers: Array<{ id: string; preferredChannel: string }> = [];
+
     if (dto.supplierIds.length > 0) {
-      const suppliers = await this.prisma.supplier.findMany({
+      suppliers = await this.prisma.supplier.findMany({
         where: { id: { in: dto.supplierIds } },
       });
       if (suppliers.length !== dto.supplierIds.length) {
@@ -243,6 +252,9 @@ export class QuotationService {
           data: dto.supplierIds.map((supplierId) => ({
             quotationId: id,
             supplierId,
+            channel:
+              suppliers.find((supplier) => supplier.id === supplierId)
+                ?.preferredChannel || 'EMAIL',
           })),
         });
       }
@@ -257,6 +269,48 @@ export class QuotationService {
           },
         },
       });
+    });
+  }
+
+  async updateSupplierChannel(
+    quotationId: string,
+    supplierId: string,
+    dto: UpdateQuotationSupplierChannelDto,
+  ) {
+    const quotation = await this.findOne(quotationId);
+    if (quotation.status !== 'DRAFT') {
+      throw new BadRequestException(
+        'O canal de envio só pode ser alterado antes da publicação.',
+      );
+    }
+
+    const association = await this.prisma.quotationSupplier.findUnique({
+      where: {
+        quotationId_supplierId: {
+          quotationId,
+          supplierId,
+        },
+      },
+    });
+
+    if (!association) {
+      throw new NotFoundException('Fornecedor não associado a esta cotação.');
+    }
+
+    return this.prisma.quotationSupplier.update({
+      where: { id: association.id },
+      data: { channel: dto.channel },
+      include: {
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            contactName: true,
+          },
+        },
+      },
     });
   }
 
@@ -275,7 +329,7 @@ export class QuotationService {
 
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
-        'Apenas cotações em rascunho (DRAFT) podem ser publicadas.',
+        'Apenas cotações em rascunho podem ser publicadas.',
       );
     }
 
@@ -331,12 +385,13 @@ export class QuotationService {
 
         return updated;
       },
-    )) as Promise<Quotation>;
+    )) as Quotation;
 
-    // 2. Queue email jobs for each associated supplier after successful transaction
-    for (const qs of quotation.suppliers) {
-      await this.mailService.sendEmail(qs.id);
-    }
+    await this.dispatchQuotationInvites(
+      id,
+      quotation.tenantId,
+      quotation.suppliers,
+    );
 
     return updatedQuotation;
   }
@@ -362,7 +417,7 @@ export class QuotationService {
 
     if (qs.quotation.status !== 'OPEN') {
       throw new BadRequestException(
-        'Apenas cotações abertas (OPEN) podem ter e-mails reenviados.',
+        'Apenas cotações abertas podem ter e-mails reenviados.',
       );
     }
 
@@ -375,17 +430,72 @@ export class QuotationService {
     // Verify monthly email limit for 1 email resend
     await this.mailService.checkEmailLimit(qs.quotation.tenantId, 1);
 
-    // Queue email job
-    await this.mailService.sendEmail(qs.id);
+    await this.dispatchQuotationInvites(id, qs.quotation.tenantId, [qs]);
 
     return { success: true };
+  }
+
+  private async dispatchQuotationInvites(
+    quotationId: string,
+    tenantId: string,
+    suppliers: Array<{ id: string; channel?: string }>,
+  ): Promise<void> {
+    const whatsappSuppliers = suppliers.filter(
+      (supplier) => supplier.channel === 'WHATSAPP',
+    );
+    const emailSuppliers = suppliers.filter(
+      (supplier) => supplier.channel !== 'WHATSAPP',
+    );
+    const correlationId = randomUUID();
+    const dispatchRound = Date.now();
+
+    const supplierIds = suppliers.map((supplier) => supplier.id);
+    if (supplierIds.length > 0) {
+      await this.prisma.quotationSupplier.updateMany({
+        where: { id: { in: supplierIds } },
+        data: {
+          dispatchStatus: 'QUEUED',
+          emailError: null,
+          whatsappError: null,
+        },
+      });
+    }
+
+    for (const supplier of emailSuppliers) {
+      await this.taskQueue.enqueue(
+        'email-dispatch',
+        {
+          tenantId,
+          quotationSupplierId: supplier.id,
+          correlationId,
+        },
+        {
+          dedupeKey: `email:${supplier.id}:${dispatchRound}`,
+        },
+      );
+    }
+
+    if (whatsappSuppliers.length > 0) {
+      await this.taskQueue.enqueue(
+        'whatsapp-dispatch',
+        {
+          tenantId,
+          quotationId,
+          quotationSupplierIds: whatsappSuppliers.map((s) => s.id),
+          correlationId,
+        },
+        {
+          dedupeKey: `whatsapp:${quotationId}:${dispatchRound}`,
+        },
+      );
+    }
   }
 
   async close(id: string): Promise<Quotation> {
     const quotation = await this.findOne(id);
     if (quotation.status !== 'OPEN') {
       throw new BadRequestException(
-        'Apenas cotações abertas (OPEN) podem ser encerradas.',
+        'Apenas cotações abertas podem ser encerradas.',
       );
     }
 
@@ -412,6 +522,49 @@ export class QuotationService {
 
       return updatedQuotation;
     }) as Promise<Quotation>;
+  }
+
+  /**
+   * Encerra cotações OPEN cujo deadline já passou.
+   * Usado pelo Cloud Scheduler via POST /api/tasks/expire-quotations.
+   * Roda sem TenantContext — varre todos os tenants.
+   */
+  async expireExpiredQuotations(): Promise<{ expiredCount: number }> {
+    return this.prisma.$transaction(async (tx: any) => {
+      const expired = await tx.quotation.findMany({
+        where: {
+          status: 'OPEN',
+          deadline: { lt: new Date() },
+        },
+        select: { id: true },
+      });
+
+      if (expired.length === 0) {
+        return { expiredCount: 0 };
+      }
+
+      const ids = expired.map((quotation: { id: string }) => quotation.id);
+
+      await tx.quotation.updateMany({
+        where: { id: { in: ids }, status: 'OPEN' },
+        data: { status: 'CLOSED' },
+      });
+
+      await tx.magicLink.updateMany({
+        where: { quotationId: { in: ids } },
+        data: { active: false },
+      });
+
+      await tx.quotationSupplier.updateMany({
+        where: {
+          quotationId: { in: ids },
+          responseStatus: 'PENDING',
+        },
+        data: { responseStatus: 'EXPIRED' },
+      });
+
+      return { expiredCount: ids.length };
+    });
   }
 
   async duplicate(id: string) {

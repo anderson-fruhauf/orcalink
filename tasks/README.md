@@ -27,7 +27,7 @@ Este diretório contém todas as tarefas necessárias para implementar o MVP (P0
 | 12 | Fornecedores Pages | Frontend | 07, 09 |
 | 13 | Cotações Backend (CRUD + Estados) | Backend | 06, 07 |
 | 14 | Magic Links (Geração + Validação) | Backend | 13 |
-| 15 | Disparo de E-mail (BullMQ + Resend) | Backend | 14 |
+| 15 | Disparo de E-mail (Cloud Tasks + Resend) | Backend | 14 |
 | 16 | Cotações Pages (Criar/Listar/Detalhe) | Frontend | 13, 09 |
 | 17 | Portal do Fornecedor — Backend | Backend | 14 |
 | 18 | Portal do Fornecedor — Frontend | Frontend | 17 |
@@ -35,3 +35,15 @@ Este diretório contém todas as tarefas necessárias para implementar o MVP (P0
 | 20 | Encerramento + Expiração Automática | Backend | 13 |
 | 21 | Segurança (Rate Limit, CORS, Helmet) | Backend | 03 |
 | 22 | Observabilidade (Logs, Health Checks) | Backend | 00 |
+| 24 | Fila Assíncrona (Google Cloud Tasks) | Infra + Backend | 15, 20, 22 |
+
+> A task **24** revisa o RNF05 e substitui **BullMQ + Redis** por **Cloud Tasks + Cloud Scheduler**.
+> Ela é numerada por último por ter sido decidida depois, mas afeta as tasks 15, 20, 22 e 23.
+
+## P1 — Automação (v1.1)
+
+Tasks fora do MVP, executadas após o P0.
+
+| # | Task | Camada | Depende de |
+|---|---|---|---|
+| 23 | Integração WhatsApp (QR Code, não-oficial) | Backend + Frontend | 14, 15, 16, 22, 24 |

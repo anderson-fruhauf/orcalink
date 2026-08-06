@@ -263,7 +263,7 @@ describe('ProductService', () => {
 
       await expect(service.remove('prod-1')).rejects.toThrow(
         new ConflictException(
-          'Não é possível excluir um produto vinculado a uma cotação ativa (status OPEN).',
+          'Não é possível excluir um produto vinculado a uma cotação ativa.',
         ),
       );
       expect(prismaService.quotationItem.findFirst).toHaveBeenCalledWith({

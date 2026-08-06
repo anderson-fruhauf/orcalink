@@ -7,6 +7,10 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { FirebaseAdminService } from '../../firebase/firebase-admin.service.js';
 import { RegisterDto } from './dto/register.dto.js';
+import {
+  AUTH_CONFLICT_MESSAGE,
+  AUTH_UNAUTHORIZED_MESSAGE,
+} from '../../common/constants/error-messages.js';
 
 @Injectable()
 export class AuthService {
@@ -19,12 +23,12 @@ export class AuthService {
 
   async register(dto: RegisterDto, authHeader: string) {
     if (!authHeader) {
-      throw new UnauthorizedException('Missing authorization header');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     const [type, token] = authHeader.split(' ');
     if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header format');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     let decodedToken;
@@ -35,13 +39,13 @@ export class AuthService {
         'Firebase token verification failed during registration',
         error instanceof Error ? error.stack : String(error),
       );
-      throw new UnauthorizedException('Invalid Firebase token');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     const { uid: firebaseUid, email } = decodedToken;
 
     if (!email) {
-      throw new UnauthorizedException('Firebase token must contain email');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     // Verificar se o usuário já existe no banco local por firebaseUid ou email
@@ -52,7 +56,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('User or Firebase UID already registered');
+      throw new ConflictException(AUTH_CONFLICT_MESSAGE);
     }
 
     // Criar Tenant e User em uma transação do Prisma
@@ -96,7 +100,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE);
     }
 
     return {

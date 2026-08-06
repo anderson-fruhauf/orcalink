@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Pencil, Trash2, AlertTriangle, FolderOpen } from 'lucide-react';
 import api from '../lib/api.js';
+import { getApiErrorMessage } from '../lib/errors.js';
 import toast from 'react-hot-toast';
 import { Modal } from '../components/Modal.js';
 import '../styles/categories.css';
@@ -98,9 +99,7 @@ export const Categories: React.FC = () => {
       setModalOpen(false);
       fetchCategories();
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message || 'Erro ao salvar categoria.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, 'Erro ao salvar categoria.'));
     } finally {
       setFormSubmitting(false);
     }
@@ -115,11 +114,7 @@ export const Categories: React.FC = () => {
       setDeletingCategory(null);
       fetchCategories();
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        'Erro ao excluir categoria.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, 'Erro ao excluir categoria.'));
       setDeletingCategory(null);
     }
   };

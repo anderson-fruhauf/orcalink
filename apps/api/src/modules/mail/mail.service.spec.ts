@@ -224,7 +224,11 @@ describe('MailService', () => {
       // Verify DB update
       expect(prismaService.quotationSupplier.update).toHaveBeenCalledWith({
         where: { id: 'qs-1' },
-        data: { sentAt: expect.any(Date) },
+        data: {
+          sentAt: expect.any(Date),
+          dispatchStatus: 'SENT',
+          emailError: null,
+        },
       });
     });
   });

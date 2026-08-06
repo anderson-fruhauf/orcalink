@@ -1,5 +1,9 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  AUTH_CONFLICT_MESSAGE,
+  AUTH_UNAUTHORIZED_MESSAGE,
+} from '../../common/constants/error-messages.js';
 import { AuthService } from './auth.service.js';
 import { FirebaseAdminService } from '../../firebase/firebase-admin.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -57,13 +61,13 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException if authHeader is missing', async () => {
       await expect(service.register(dto, '')).rejects.toThrow(
-        new UnauthorizedException('Missing authorization header'),
+        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
       );
     });
 
     it('should throw UnauthorizedException if authHeader format is invalid', async () => {
       await expect(service.register(dto, 'Basic token')).rejects.toThrow(
-        new UnauthorizedException('Invalid authorization header format'),
+        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
       );
     });
 
@@ -73,7 +77,7 @@ describe('AuthService', () => {
       );
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
-        new UnauthorizedException('Invalid Firebase token'),
+        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
       );
     });
 
@@ -87,7 +91,7 @@ describe('AuthService', () => {
       });
 
       await expect(service.register(dto, authHeader)).rejects.toThrow(
-        new ConflictException('User or Firebase UID already registered'),
+        new ConflictException(AUTH_CONFLICT_MESSAGE),
       );
     });
 
@@ -148,7 +152,7 @@ describe('AuthService', () => {
       prismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(service.getMe('non-existent')).rejects.toThrow(
-        new UnauthorizedException('User not found'),
+        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
       );
     });
 
