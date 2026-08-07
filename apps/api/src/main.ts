@@ -3,6 +3,9 @@ import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { JsonLogger } from './common/logger/json-logger.js';
+import { validateEnv } from './config/env.js';
+
+validateEnv();
 
 async function bootstrap() {
   try {

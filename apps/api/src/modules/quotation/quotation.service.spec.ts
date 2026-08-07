@@ -45,7 +45,7 @@ describe('QuotationService', () => {
     },
     magicLink: {
       deleteMany: jest.fn(),
-      upsert: jest.fn(),
+      create: jest.fn(),
       updateMany: jest.fn(),
     },
     product: {
@@ -481,7 +481,18 @@ describe('QuotationService', () => {
         where: { id: 'q-1' },
         data: { status: 'OPEN' },
       });
-      expect(prismaService.magicLink.upsert).toHaveBeenCalled();
+      expect(prismaService.magicLink.updateMany).toHaveBeenCalledWith({
+        where: { quotationId: 'q-1', supplierId: 's-1', active: true },
+        data: { active: false },
+      });
+      expect(prismaService.magicLink.create).toHaveBeenCalledWith({
+        data: {
+          token: expect.any(String),
+          quotationId: 'q-1',
+          supplierId: 's-1',
+          expiresAt: deadlineDate,
+        },
+      });
       expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
         'email-dispatch',
         expect.objectContaining({

@@ -33,7 +33,9 @@ export class TasksService {
     @Inject(TASK_QUEUE) private readonly taskQueue: TaskQueue,
   ) {}
 
-  async handleEmailDispatch(dto: EmailDispatchDto): Promise<{ status: string }> {
+  async handleEmailDispatch(
+    dto: EmailDispatchDto,
+  ): Promise<{ status: string }> {
     return TenantContext.run(dto.tenantId, async () => {
       const qs = await this.prisma.quotationSupplier.findFirst({
         where: {
@@ -58,10 +60,7 @@ export class TasksService {
       }
 
       if (qs.quotation.status !== 'OPEN') {
-        await this.markEmailFailed(
-          qs.id,
-          'QUOTATION_NOT_OPEN',
-        );
+        await this.markEmailFailed(qs.id, 'QUOTATION_NOT_OPEN');
         return { status: 'failed' };
       }
 
@@ -108,7 +107,11 @@ export class TasksService {
       } catch (error) {
         if (this.isPermanentWhatsappError(error)) {
           for (const id of pendingIds) {
-            await this.enqueueEmailFallback(dto.tenantId, id, dto.correlationId);
+            await this.enqueueEmailFallback(
+              dto.tenantId,
+              id,
+              dto.correlationId,
+            );
           }
           return {
             status: 'fallback',
@@ -118,9 +121,7 @@ export class TasksService {
         }
 
         throw new InternalServerErrorException(
-          error instanceof Error
-            ? error.message
-            : 'WHATSAPP_TRANSIENT_FAILURE',
+          error instanceof Error ? error.message : 'WHATSAPP_TRANSIENT_FAILURE',
         );
       }
 

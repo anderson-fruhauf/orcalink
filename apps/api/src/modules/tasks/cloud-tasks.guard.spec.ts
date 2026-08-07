@@ -65,9 +65,7 @@ describe('CloudTasksGuard', () => {
 
       await expect(
         guard.canActivate(createContext({ 'x-tasks-secret': 'wrong' })),
-      ).rejects.toThrow(
-        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
-      );
+      ).rejects.toThrow(new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE));
     });
 
     it('não deve usar o emulador quando NODE_ENV=production', async () => {
@@ -80,9 +78,7 @@ describe('CloudTasksGuard', () => {
         guard.canActivate(
           createContext({ 'x-tasks-secret': 'dev-tasks-secret' }),
         ),
-      ).rejects.toThrow(
-        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
-      );
+      ).rejects.toThrow(new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE));
     });
   });
 
@@ -154,9 +150,7 @@ describe('CloudTasksGuard', () => {
         guard.canActivate(
           createContext({ authorization: 'Bearer valid-token' }),
         ),
-      ).rejects.toThrow(
-        new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE),
-      );
+      ).rejects.toThrow(new UnauthorizedException(AUTH_UNAUTHORIZED_MESSAGE));
     });
 
     it('deve rejeitar quando Authorization está ausente', async () => {

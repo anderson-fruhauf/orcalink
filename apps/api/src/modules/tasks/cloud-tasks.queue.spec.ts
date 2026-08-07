@@ -44,7 +44,8 @@ describe('CloudTasksQueue', () => {
     );
 
     expect(mockClient.createTask).toHaveBeenCalledWith({
-      parent: 'projects/orcalink-dev/locations/us-central1/queues/email-dispatch',
+      parent:
+        'projects/orcalink-dev/locations/us-central1/queues/email-dispatch',
       task: expect.objectContaining({
         name: 'projects/orcalink-dev/locations/us-central1/queues/email-dispatch/tasks/email-qs-1-123',
         scheduleTime: expect.objectContaining({

@@ -20,7 +20,8 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 
-const workerModules = process.env['SERVICE_ROLE'] === 'worker' ? [TasksModule] : [];
+const workerModules =
+  process.env['SERVICE_ROLE'] === 'worker' ? [TasksModule] : [];
 
 @Module({
   imports: [

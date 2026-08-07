@@ -8,7 +8,10 @@ import {
 import { AppService } from './app.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { SERVICE_UNAVAILABLE_MESSAGE } from './common/constants/error-messages.js';
-import { TASK_QUEUE, type TaskQueue } from './modules/tasks/task-queue.interface.js';
+import {
+  TASK_QUEUE,
+  type TaskQueue,
+} from './modules/tasks/task-queue.interface.js';
 
 @Controller()
 export class AppController {
