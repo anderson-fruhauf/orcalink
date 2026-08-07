@@ -48,3 +48,12 @@ Tasks fora do MVP, executadas após o P0.
 |---|---|---|---|
 | 23 | Integração WhatsApp (QR Code, não-oficial) | Backend + Frontend | 14, 15, 16, 22, 24 |
 | 28 | Lembretes Automáticos (1 dia antes do prazo) | Backend + Infra | 14, 15, 20, 23, 24 |
+
+## Bugs
+
+Correções pontuais encontradas em produção / uso.
+
+| # | Task | Camada | Depende de |
+|---|---|---|---|
+| 29 | Bug: Validação de limites na resposta do fornecedor | Backend + Frontend | 17, 18 |
+| 30 | Bug: Prazo ao duplicar cotação (retroativa) | Backend + Frontend | 13, 16 |
