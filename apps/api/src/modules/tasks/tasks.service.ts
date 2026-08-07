@@ -70,7 +70,7 @@ export class TasksService {
       }
 
       try {
-        await this.mailService.sendEmail(qs.id);
+        await this.mailService.sendEmail(qs.id, dto.kind ?? 'invite');
         return { status: 'sent' };
       } catch (error) {
         if (this.isPermanentMailError(error)) {
@@ -103,6 +103,7 @@ export class TasksService {
           dto.tenantId,
           dto.quotationId,
           pendingIds,
+          dto.kind ?? 'invite',
         );
       } catch (error) {
         if (this.isPermanentWhatsappError(error)) {
@@ -111,6 +112,7 @@ export class TasksService {
               dto.tenantId,
               id,
               dto.correlationId,
+              dto.kind ?? 'invite',
             );
           }
           return {
@@ -126,7 +128,12 @@ export class TasksService {
       }
 
       for (const id of result.fallbackToEmail) {
-        await this.enqueueEmailFallback(dto.tenantId, id, dto.correlationId);
+        await this.enqueueEmailFallback(
+          dto.tenantId,
+          id,
+          dto.correlationId,
+          dto.kind ?? 'invite',
+        );
       }
 
       return {
@@ -163,6 +170,7 @@ export class TasksService {
     tenantId: string,
     quotationSupplierId: string,
     correlationId?: string,
+    kind: EmailDispatchDto['kind'] = 'invite',
   ): Promise<void> {
     await this.prisma.quotationSupplier.update({
       where: { id: quotationSupplierId },
@@ -178,6 +186,7 @@ export class TasksService {
         tenantId,
         quotationSupplierId,
         correlationId,
+        kind,
       },
       {
         dedupeKey: `email-fallback:${quotationSupplierId}:${correlationId ?? 'na'}`,

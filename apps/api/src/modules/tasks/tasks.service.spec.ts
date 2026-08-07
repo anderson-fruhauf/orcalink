@@ -138,6 +138,7 @@ describe('TasksService', () => {
           tenantId: 't-1',
           quotationSupplierId: 'qs-1',
           correlationId: 'corr-1',
+          kind: 'invite',
         },
         expect.objectContaining({
           dedupeKey: 'email-fallback:qs-1:corr-1',

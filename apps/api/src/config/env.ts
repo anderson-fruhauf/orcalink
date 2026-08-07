@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 /** Empty Cloud Run / GitHub secrets arrive as `""` — treat like missing. */
 const requiredString = z.preprocess(
-  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
   z.string().min(1),
 );
 
@@ -22,13 +23,15 @@ export type Env = z.infer<typeof envSchema>;
 
 export function validateEnv(
   env: NodeJS.ProcessEnv = process.env,
-  exitOnError: (code: number) => never = (code) => process.exit(code) as never,
+  exitOnError: (code: number) => never = (code) => process.exit(code),
 ): Env {
   const result = envSchema.safeParse(env);
 
   if (!result.success) {
     const fields = [
-      ...new Set(result.error.issues.map((issue) => issue.path.join('.') || '(root)')),
+      ...new Set(
+        result.error.issues.map((issue) => issue.path.join('.') || '(root)'),
+      ),
     ].join(', ');
 
     console.error(

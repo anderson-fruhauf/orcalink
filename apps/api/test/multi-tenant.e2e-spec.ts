@@ -66,7 +66,12 @@ describe('Multi-tenant isolation (e2e)', () => {
           const token = authHeader.slice('Bearer '.length);
           const users: Record<
             string,
-            { userId: string; tenantId: string; email: string; firebaseUid: string }
+            {
+              userId: string;
+              tenantId: string;
+              email: string;
+              firebaseUid: string;
+            }
           > = {
             [tenantA.token]: {
               userId: 'e2e-user-a',

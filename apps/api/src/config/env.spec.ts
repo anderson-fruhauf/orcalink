@@ -23,7 +23,9 @@ describe('validateEnv', () => {
       throw new Error('exit');
     }) as unknown as (code: number) => never;
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const errorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
 
     expect(() =>
       validateEnv({ ...validEnv, RESEND_FROM_EMAIL: '' }, exit),
@@ -40,7 +42,9 @@ describe('validateEnv', () => {
       throw new Error('exit');
     }) as unknown as (code: number) => never;
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const errorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
 
     expect(() => validateEnv({ NODE_ENV: 'production' }, exit)).toThrow('exit');
     expect(exit).toHaveBeenCalledWith(1);

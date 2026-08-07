@@ -24,6 +24,7 @@ services:
       - -port=8123
       - -queue=projects/orcalink-dev/locations/us-central1/queues/email-dispatch
       - -queue=projects/orcalink-dev/locations/us-central1/queues/whatsapp-dispatch
+      - -queue=projects/orcalink-dev/locations/us-central1/queues/remind-quotation
     ports:
       - "8123:8123"
     # Permite o emulador alcançar a API rodando no host (yarn dev).

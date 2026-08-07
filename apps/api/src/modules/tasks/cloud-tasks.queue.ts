@@ -10,6 +10,7 @@ import {
 const QUEUE_ROUTE: Record<TaskQueueName, string> = {
   'email-dispatch': '/api/tasks/email-dispatch',
   'whatsapp-dispatch': '/api/tasks/whatsapp-dispatch',
+  'remind-quotation': '/api/tasks/remind-quotation',
 };
 
 @Injectable()
