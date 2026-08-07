@@ -537,7 +537,23 @@ describe('QuotationService', () => {
   });
 
   describe('resend', () => {
+    const openQuotation = {
+      id: 'q-1',
+      status: 'OPEN',
+      tenantId: 'tenant-123',
+    };
+
+    it('should throw NotFoundException if quotation belongs to another tenant', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue(null);
+
+      await expect(service.resend('q-1', 's-1')).rejects.toThrow(
+        new NotFoundException('Cotação não encontrada'),
+      );
+      expect(prismaService.quotationSupplier.findUnique).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException if quotation supplier association is not found', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue(openQuotation);
       prismaService.quotationSupplier.findUnique.mockResolvedValue(null);
 
       await expect(service.resend('q-1', 's-1')).rejects.toThrow(
@@ -546,6 +562,7 @@ describe('QuotationService', () => {
     });
 
     it('should throw BadRequestException if quotation is not OPEN', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue(openQuotation);
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
@@ -563,6 +580,7 @@ describe('QuotationService', () => {
     });
 
     it('should throw BadRequestException if supplier response status is not PENDING', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue(openQuotation);
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
@@ -581,6 +599,7 @@ describe('QuotationService', () => {
     });
 
     it('should check limit, enqueue invite and return success if valid', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue(openQuotation);
       prismaService.quotationSupplier.findUnique.mockResolvedValue({
         id: 'qs-1',
         quotationId: 'q-1',
