@@ -62,3 +62,12 @@ export function isDeadlineTomorrow(
   const { dateKey } = getTomorrowBounds(now);
   return formatDate(deadline) === dateKey;
 }
+
+/**
+ * Prazo padrão para rascunhos (amanhã às 18:00 no fuso do sistema).
+ * Usado ao duplicar cotação — o usuário deve revisar antes de publicar.
+ */
+export function getDefaultDraftDeadline(now: Date = new Date()): Date {
+  const { dateKey } = getTomorrowBounds(now);
+  return new Date(`${dateKey}T18:00:00.000${SYSTEM_OFFSET}`);
+}

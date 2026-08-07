@@ -1,6 +1,7 @@
 import {
   addCalendarDays,
   formatDate,
+  getDefaultDraftDeadline,
   getTomorrowBounds,
   isDeadlineTomorrow,
   startOfDay,
@@ -45,6 +46,13 @@ describe('date', () => {
     );
     expect(isDeadlineTomorrow(new Date('2026-08-09T12:00:00.000Z'), now)).toBe(
       false,
+    );
+  });
+
+  it('getDefaultDraftDeadline returns tomorrow at 18:00 BRT', () => {
+    const now = new Date('2026-08-07T15:00:00.000Z');
+    expect(getDefaultDraftDeadline(now).toISOString()).toBe(
+      '2026-08-08T21:00:00.000Z',
     );
   });
 });

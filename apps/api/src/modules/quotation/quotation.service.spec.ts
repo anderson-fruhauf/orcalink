@@ -258,6 +258,19 @@ describe('QuotationService', () => {
       });
       expect(result.title).toBe('Novo Título');
     });
+
+    it('deve rejeitar deadline no passado', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        status: 'DRAFT',
+      });
+
+      await expect(
+        service.update('q-1', { deadline: '2020-01-01T12:00:00.000Z' }),
+      ).rejects.toThrow(
+        new BadRequestException('O prazo de resposta deve ser no futuro.'),
+      );
+    });
   });
 
   describe('remove', () => {
@@ -458,7 +471,7 @@ describe('QuotationService', () => {
     });
 
     it('should update status to OPEN and generate magic links', async () => {
-      const deadlineDate = new Date();
+      const deadlineDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
       prismaService.quotation.findUnique.mockResolvedValue({
         id: 'q-1',
         tenantId: 'tenant-123',
@@ -513,7 +526,7 @@ describe('QuotationService', () => {
         id: 'q-1',
         tenantId: 'tenant-123',
         status: 'DRAFT',
-        deadline: new Date(),
+        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
         items: [{ id: 'qi-1' }],
         suppliers: [
           { id: 'qs-1', supplierId: 's-1', channel: 'WHATSAPP' },
@@ -545,6 +558,24 @@ describe('QuotationService', () => {
         expect.any(Object),
       );
       expect(mockMailService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('deve rejeitar publicação quando o prazo já passou', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 'tenant-123',
+        status: 'DRAFT',
+        deadline: new Date('2020-01-01T12:00:00.000Z'),
+        items: [{ id: 'qi-1' }],
+        suppliers: [{ id: 'qs-1', supplierId: 's-1', channel: 'EMAIL' }],
+      });
+
+      await expect(service.publish('q-1')).rejects.toThrow(
+        new BadRequestException(
+          'O prazo de resposta deve ser no futuro. Atualize o prazo antes de publicar.',
+        ),
+      );
+      expect(prismaService.quotation.update).not.toHaveBeenCalled();
     });
   });
 
@@ -876,7 +907,7 @@ describe('QuotationService', () => {
       const original = {
         id: 'q-1',
         title: 'Original',
-        deadline: new Date(),
+        deadline: new Date('2020-01-01T12:00:00.000Z'),
         items: [
           { productId: 'p-1', quantity: 10, observation: 'Notes 1' },
           { productId: 'p-2', quantity: 20, observation: 'Notes 2' },
@@ -893,10 +924,13 @@ describe('QuotationService', () => {
       expect(prismaService.quotation.create).toHaveBeenCalledWith({
         data: {
           title: 'Original (Cópia)',
-          deadline: original.deadline,
+          deadline: expect.any(Date),
           status: 'DRAFT',
         },
       });
+      const createArgs = prismaService.quotation.create.mock.calls[0][0];
+      expect(createArgs.data.deadline.getTime()).toBeGreaterThan(Date.now());
+      expect(createArgs.data.deadline).not.toEqual(original.deadline);
       expect(prismaService.quotationItem.createMany).toHaveBeenCalledWith({
         data: [
           {
@@ -913,6 +947,28 @@ describe('QuotationService', () => {
           },
         ],
       });
+    });
+
+    it('não deve copiar deadline passado da cotação original', async () => {
+      const pastDeadline = new Date('2020-06-01T12:00:00.000Z');
+      const original = {
+        id: 'q-1',
+        title: 'Cotação vencida',
+        deadline: pastDeadline,
+        items: [],
+      };
+      prismaService.quotation.findUnique.mockResolvedValue(original);
+      prismaService.quotation.create.mockResolvedValue({
+        id: 'q-2',
+        title: 'Cotação vencida (Cópia)',
+      });
+
+      await service.duplicate('q-1');
+
+      const createdDeadline =
+        prismaService.quotation.create.mock.calls[0][0].data.deadline as Date;
+      expect(createdDeadline.getTime()).toBeGreaterThan(Date.now());
+      expect(createdDeadline.getTime()).not.toBe(pastDeadline.getTime());
     });
   });
 });
