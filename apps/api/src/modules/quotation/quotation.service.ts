@@ -20,6 +20,7 @@ import type { DispatchKind } from '../tasks/dto/dispatch-task.dto.js';
 import {
   getTomorrowBounds,
   isDeadlineTomorrow,
+  getDefaultDraftDeadline,
 } from '../../common/utils/date.js';
 
 @Injectable()
@@ -143,6 +144,12 @@ export class QuotationService {
     if (quotation.status !== 'DRAFT') {
       throw new BadRequestException(
         'Apenas cotações em rascunho podem ser editadas.',
+      );
+    }
+
+    if (dto.deadline && new Date(dto.deadline) <= new Date()) {
+      throw new BadRequestException(
+        'O prazo de resposta deve ser no futuro.',
       );
     }
 
@@ -347,6 +354,12 @@ export class QuotationService {
     if (quotation.suppliers.length === 0) {
       throw new BadRequestException(
         'A cotação deve ter pelo menos um fornecedor associado antes de ser publicada.',
+      );
+    }
+
+    if (quotation.deadline <= new Date()) {
+      throw new BadRequestException(
+        'O prazo de resposta deve ser no futuro. Atualize o prazo antes de publicar.',
       );
     }
 
@@ -680,10 +693,12 @@ export class QuotationService {
     }
 
     return this.prisma.$transaction(async (tx: any) => {
+      // Não copia o deadline original — evita rascunho com prazo no passado.
+      // Placeholder futuro; o usuário deve revisar antes de publicar.
       const newQuotation = await tx.quotation.create({
         data: {
           title: `${quotation.title} (Cópia)`,
-          deadline: quotation.deadline,
+          deadline: getDefaultDraftDeadline(),
           status: 'DRAFT',
         },
       });

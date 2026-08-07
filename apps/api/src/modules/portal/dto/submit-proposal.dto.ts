@@ -1,6 +1,7 @@
 import {
   IsInt,
   Min,
+  Max,
   IsString,
   IsNotEmpty,
   IsOptional,
@@ -12,9 +13,15 @@ import {
 import { Type } from 'class-transformer';
 import { ProposalItemDto } from './proposal-item.dto.js';
 
+/** Limite de negócio: 365 dias evita overflow do Int do Prisma e valores absurdos. */
+export const MAX_DELIVERY_DAYS = 365;
+
 export class SubmitProposalDto {
   @IsInt({ message: 'O prazo de entrega deve ser um número inteiro.' })
   @Min(1, { message: 'O prazo de entrega deve ser de no mínimo 1 dia.' })
+  @Max(MAX_DELIVERY_DAYS, {
+    message: `O prazo de entrega deve ser de no máximo ${MAX_DELIVERY_DAYS} dias.`,
+  })
   @IsNotEmpty({ message: 'O prazo de entrega é obrigatório.' })
   deliveryDays: number;
 

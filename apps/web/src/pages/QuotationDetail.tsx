@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Package, Users, FileText, Send, Lock, Copy, Trash2, Plus, Mail, AlertTriangle, MoreVertical, Link2, MessageCircle } from 'lucide-react';
 import api from '../lib/api.js';
 import { getApiErrorMessage } from '../lib/errors.js';
@@ -16,6 +16,11 @@ import '../styles/settings.css';
 
 type DispatchChannel = 'EMAIL' | 'WHATSAPP';
 
+function toDatetimeLocalValue(iso: string): string {
+  const date = new Date(iso);
+  const tzoffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
+}
 interface Product {
   id: string;
   name: string;
@@ -143,6 +148,7 @@ function getSupplierInviteData(quotation: QuotationDetailResponse, supplierId: s
 export const QuotationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const isPro = user?.tenant?.plan === 'PRO';
 
@@ -155,6 +161,10 @@ export const QuotationDetail: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQty, setItemQty] = useState(1);
   const [itemNotes, setItemNotes] = useState('');
+  const [deadlineDraft, setDeadlineDraft] = useState('');
+  const [savingDeadline, setSavingDeadline] = useState(false);
+  const [highlightDeadline, setHighlightDeadline] = useState(false);
+  const deadlineInputRef = useRef<HTMLInputElement>(null);
 
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
@@ -178,6 +188,7 @@ export const QuotationDetail: React.FC = () => {
       }
       const response = await api.get<QuotationDetailResponse>(`/quotations/${id}`);
       setQuotation(response.data);
+      setDeadlineDraft(toDatetimeLocalValue(response.data.deadline));
       setSelectedSupplierIds(response.data.suppliers.map((s) => s.supplierId));
     } catch {
       if (!options?.silent) {
@@ -208,6 +219,22 @@ export const QuotationDetail: React.FC = () => {
   useEffect(() => {
     fetchQuotationDetails();
   }, [fetchQuotationDetails]);
+
+  useEffect(() => {
+    const state = location.state as { reviewDeadline?: boolean } | null;
+    if (!state?.reviewDeadline) return;
+
+    setHighlightDeadline(true);
+    toast('Defina o novo prazo de resposta da cópia antes de publicar.');
+    navigate(location.pathname, { replace: true, state: {} });
+
+    const timer = window.setTimeout(() => {
+      deadlineInputRef.current?.focus();
+      deadlineInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     if (!quotation || quotation.status !== 'OPEN') return;
@@ -316,6 +343,38 @@ export const QuotationDetail: React.FC = () => {
   };
 
   // Header Actions
+  const handleSaveDeadline = async () => {
+    if (!quotation || quotation.status !== 'DRAFT') return;
+    if (!deadlineDraft) {
+      toast.error('O prazo de resposta é obrigatório.');
+      return;
+    }
+    if (new Date(deadlineDraft) <= new Date()) {
+      toast.error('O prazo de resposta deve ser no futuro.');
+      return;
+    }
+
+    try {
+      setSavingDeadline(true);
+      const response = await api.patch<QuotationDetailResponse>(
+        `/quotations/${quotation.id}`,
+        { deadline: new Date(deadlineDraft).toISOString() },
+      );
+      setQuotation((prev) =>
+        prev
+          ? { ...prev, deadline: response.data.deadline, title: response.data.title ?? prev.title }
+          : prev,
+      );
+      setDeadlineDraft(toDatetimeLocalValue(response.data.deadline));
+      setHighlightDeadline(false);
+      toast.success('Prazo atualizado.');
+    } catch (error: any) {
+      toast.error(getApiErrorMessage(error, 'Erro ao atualizar o prazo.'));
+    } finally {
+      setSavingDeadline(false);
+    }
+  };
+
   const handlePublish = async () => {
     if (!quotation) return;
     if (quotation.items.length === 0) {
@@ -324,6 +383,18 @@ export const QuotationDetail: React.FC = () => {
     }
     if (quotation.suppliers.length === 0) {
       toast.error('Selecione pelo menos um fornecedor antes de publicar.');
+      return;
+    }
+    if (new Date(quotation.deadline) <= new Date()) {
+      toast.error('O prazo de resposta deve ser no futuro. Atualize o prazo antes de publicar.');
+      setHighlightDeadline(true);
+      deadlineInputRef.current?.focus();
+      return;
+    }
+    if (deadlineDraft !== toDatetimeLocalValue(quotation.deadline)) {
+      toast.error('Salve o novo prazo antes de publicar.');
+      setHighlightDeadline(true);
+      deadlineInputRef.current?.focus();
       return;
     }
 
@@ -358,8 +429,10 @@ export const QuotationDetail: React.FC = () => {
     try {
       setActionLoading(true);
       const response = await api.post<{ id: string }>(`/quotations/${quotation.id}/duplicate`);
-      toast.success('Cotação duplicada! Direcionando para o novo rascunho...');
-      navigate(`/dashboard/quotations/${response.data.id}`);
+      toast.success('Cotação duplicada! Defina o novo prazo de resposta.');
+      navigate(`/dashboard/quotations/${response.data.id}`, {
+        state: { reviewDeadline: true },
+      });
     } catch (error: any) {
       toast.error(getApiErrorMessage(error, 'Erro ao duplicar cotação.'));
     } finally {
@@ -700,9 +773,57 @@ export const QuotationDetail: React.FC = () => {
               {getStatusBadge(quotation.status)}
             </div>
             <p className="quotations-page-subtitle">
-              Criada em {new Date(quotation.createdAt).toLocaleDateString('pt-BR')} | 
-              Prazo limite: <span style={{ fontWeight: 600 }}>{new Date(quotation.deadline).toLocaleString('pt-BR')}</span>
+              Criada em {new Date(quotation.createdAt).toLocaleDateString('pt-BR')}
+              {!isDraft && (
+                <>
+                  {' '}| Prazo limite:{' '}
+                  <span style={{ fontWeight: 600 }}>
+                    {new Date(quotation.deadline).toLocaleString('pt-BR')}
+                  </span>
+                </>
+              )}
             </p>
+            {isDraft && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  gap: 'var(--space-2)',
+                  marginTop: 'var(--space-3)',
+                  flexWrap: 'wrap',
+                  padding: highlightDeadline ? 'var(--space-3)' : 0,
+                  borderRadius: highlightDeadline ? '8px' : undefined,
+                  outline: highlightDeadline ? '2px solid var(--color-warning, #F59E0B)' : undefined,
+                  background: highlightDeadline ? 'rgba(245, 158, 11, 0.08)' : undefined,
+                }}
+              >
+                <div className="form-group" style={{ marginBottom: 0, maxWidth: '280px' }}>
+                  <label className="form-label" htmlFor="quotation-deadline-edit">
+                    Prazo Limite de Resposta *
+                  </label>
+                  <input
+                    ref={deadlineInputRef}
+                    id="quotation-deadline-edit"
+                    type="datetime-local"
+                    className="form-input"
+                    value={deadlineDraft}
+                    onChange={(e) => {
+                      setDeadlineDraft(e.target.value);
+                      setHighlightDeadline(false);
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleSaveDeadline}
+                  disabled={savingDeadline || actionLoading}
+                  style={{ height: '44px' }}
+                >
+                  {savingDeadline ? 'Salvando...' : 'Salvar prazo'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

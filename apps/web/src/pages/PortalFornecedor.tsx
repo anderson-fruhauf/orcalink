@@ -35,6 +35,10 @@ interface ProposalItemInput {
   unavailable: boolean;
 }
 
+/** Espelha o teto do backend (Int do Prisma / 365 dias). */
+const MAX_DELIVERY_DAYS = 365;
+const MAX_PRICE_IN_CENTS = 2_147_483_647;
+
 const Confetti: React.FC = () => {
   const [particles, setParticles] = useState<any[]>([]);
 
@@ -175,7 +179,13 @@ export const PortalFornecedor: React.FC = () => {
   const handlePriceChange = (itemId: string, rawValue: string) => {
     // Strip non-digits
     const digits = rawValue.replace(/\D/g, '');
-    const cents = digits ? parseInt(digits, 10) : 0;
+    let cents = digits ? parseInt(digits, 10) : 0;
+    if (cents > MAX_PRICE_IN_CENTS) {
+      cents = MAX_PRICE_IN_CENTS;
+      toast.error(
+        `O preço máximo permitido é R$ ${(MAX_PRICE_IN_CENTS / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      );
+    }
 
     setItemsState((prev) =>
       prev.map((item) =>
@@ -265,6 +275,26 @@ export const PortalFornecedor: React.FC = () => {
 
     if (deliveryDays === '' || deliveryDays <= 0) {
       toast.error('Informe um prazo de entrega válido.');
+      return;
+    }
+
+    if (deliveryDays > MAX_DELIVERY_DAYS) {
+      toast.error(
+        `O prazo de entrega deve ser de no máximo ${MAX_DELIVERY_DAYS} dias.`,
+      );
+      return;
+    }
+
+    const overpricedItem = itemsState.find(
+      (item) =>
+        !item.unavailable &&
+        item.priceInCents > 0 &&
+        item.priceInCents > MAX_PRICE_IN_CENTS,
+    );
+    if (overpricedItem) {
+      toast.error(
+        `O preço máximo permitido é R$ ${(MAX_PRICE_IN_CENTS / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      );
       return;
     }
 
@@ -459,14 +489,24 @@ export const PortalFornecedor: React.FC = () => {
               id="deliveryDays"
               type="number"
               min="1"
+              max={MAX_DELIVERY_DAYS}
               disabled={quotation?.alreadyResponded}
               className="form-input"
               style={{ height: '44px', fontSize: '15px' }}
               placeholder="Ex: 5"
               value={deliveryDays}
-              onChange={(e) =>
-                setDeliveryDays(e.target.value ? parseInt(e.target.value, 10) : '')
-              }
+              onChange={(e) => {
+                if (!e.target.value) {
+                  setDeliveryDays('');
+                  return;
+                }
+                const parsed = parseInt(e.target.value, 10);
+                if (Number.isNaN(parsed)) {
+                  setDeliveryDays('');
+                  return;
+                }
+                setDeliveryDays(Math.min(parsed, MAX_DELIVERY_DAYS));
+              }}
             />
           </div>
 
