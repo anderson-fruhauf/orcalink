@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
+/** Empty Cloud Run / GitHub secrets arrive as `""` — treat like missing. */
+const requiredString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().min(1),
+);
+
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
-  RESEND_API_KEY: z.string().min(1),
-  RESEND_FROM_EMAIL: z.string().min(1),
-  APP_URL: z.string().min(1),
+  DATABASE_URL: requiredString,
+  RESEND_API_KEY: requiredString,
+  RESEND_FROM_EMAIL: requiredString,
+  APP_URL: requiredString,
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
@@ -14,17 +20,22 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-export function validateEnv(): Env {
-  const result = envSchema.safeParse(process.env);
+export function validateEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  exitOnError: (code: number) => never = (code) => process.exit(code) as never,
+): Env {
+  const result = envSchema.safeParse(env);
 
   if (!result.success) {
-    const missing = result.error.issues
-      .filter((i) => i.code === 'invalid_type')
-      .map((i) => i.path.join('.'))
-      .join(', ');
+    const fields = [
+      ...new Set(result.error.issues.map((issue) => issue.path.join('.') || '(root)')),
+    ].join(', ');
 
-    console.error(`Missing required environment variables: ${missing}`);
-    process.exit(1);
+    console.error(
+      `Invalid or missing required environment variables: ${fields}. ` +
+        'Empty values count as missing. Check GitHub Environment secrets / Cloud Run env.',
+    );
+    exitOnError(1);
   }
 
   return result.data;

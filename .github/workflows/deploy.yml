@@ -89,6 +89,27 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
+      # Fail-fast: empty GitHub secrets become Cloud Run env="" and validateEnv()
+      # exits before listen → cryptic "failed to start and listen on PORT" error.
+      - name: Validate required production secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          missing=()
+          for name in DATABASE_URL RESEND_API_KEY RESEND_FROM_EMAIL APP_URL; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing or empty GitHub Environment secrets required for Cloud Run: ${missing[*]}"
+            echo "Set them under Settings → Environments → production → Environment secrets, then re-run Deploy."
+            exit 1
+          fi
+
       # O serviço orcalink-worker deve existir (Terraform). Usamos a URL real
       # como WORKER_URL da API e do próprio worker (OIDC audience / enqueue).
       - name: Resolve worker URL (Cloud Tasks)
