@@ -37,14 +37,14 @@ describe('date', () => {
 
   it('isDeadlineTomorrow matches civil date', () => {
     const now = new Date('2026-08-07T15:00:00.000Z');
-    expect(
-      isDeadlineTomorrow(new Date('2026-08-08T18:00:00.000Z'), now),
-    ).toBe(true);
-    expect(
-      isDeadlineTomorrow(new Date('2026-08-07T18:00:00.000Z'), now),
-    ).toBe(false);
-    expect(
-      isDeadlineTomorrow(new Date('2026-08-09T12:00:00.000Z'), now),
-    ).toBe(false);
+    expect(isDeadlineTomorrow(new Date('2026-08-08T18:00:00.000Z'), now)).toBe(
+      true,
+    );
+    expect(isDeadlineTomorrow(new Date('2026-08-07T18:00:00.000Z'), now)).toBe(
+      false,
+    );
+    expect(isDeadlineTomorrow(new Date('2026-08-09T12:00:00.000Z'), now)).toBe(
+      false,
+    );
   });
 });

@@ -1,10 +1,4 @@
-import {
-  IsArray,
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUUID,
-} from 'class-validator';
+import { IsArray, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export type DispatchKind = 'invite' | 'reminder';
 
