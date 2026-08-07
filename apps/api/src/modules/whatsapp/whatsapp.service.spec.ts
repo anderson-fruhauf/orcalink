@@ -255,7 +255,7 @@ describe('WhatsappService', () => {
               .mockResolvedValue([
                 { exists: true, jid: '5511999999999@s.whatsapp.net' },
               ]),
-            sendMessage: jest.fn().mockImplementation(async (_jid, payload) => {
+            sendMessage: jest.fn().mockImplementation((_jid, payload) => {
               sentText = payload.text;
             }),
           };
