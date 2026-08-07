@@ -21,6 +21,7 @@ import {
   type WhatsappSocket,
 } from './whatsapp-provider.interface.js';
 import { maskPhoneForLog, normalizePhoneToJid } from './whatsapp-phone.js';
+import type { DispatchKind } from '../tasks/dto/dispatch-task.dto.js';
 
 function getSendThrottleMs(): number {
   const raw = process.env['WHATSAPP_SEND_THROTTLE_MS'];
@@ -130,12 +131,14 @@ export class WhatsappService {
     tenantId: string,
     quotationId: string,
     quotationSupplierIds?: string[],
+    kind: DispatchKind = 'invite',
   ): Promise<WhatsappSendResult> {
     return TenantContext.run(tenantId, () =>
       this.runSendQuotationMessages(
         tenantId,
         quotationId,
         quotationSupplierIds,
+        kind,
       ),
     );
   }
@@ -144,6 +147,7 @@ export class WhatsappService {
     tenantId: string,
     quotationId: string,
     quotationSupplierIds?: string[],
+    kind: DispatchKind = 'invite',
   ): Promise<WhatsappSendResult> {
     const sentIds: string[] = [];
     const fallbackToEmail: string[] = [];
@@ -189,7 +193,7 @@ export class WhatsappService {
       }
 
       try {
-        const message = await this.buildQuotationMessage(qs);
+        const message = await this.buildQuotationMessage(qs, kind);
         validTargets.push({
           qsId: qs.id,
           jid,
@@ -312,19 +316,22 @@ export class WhatsappService {
     });
   }
 
-  private async buildQuotationMessage(qs: {
-    supplierId: string;
-    quotationId: string;
-    supplier: {
-      contactName: string | null;
-      name: string;
-    };
-    quotation: {
-      title: string;
-      deadline: Date;
-      tenant: { name: string };
-    };
-  }): Promise<string> {
+  private async buildQuotationMessage(
+    qs: {
+      supplierId: string;
+      quotationId: string;
+      supplier: {
+        contactName: string | null;
+        name: string;
+      };
+      quotation: {
+        title: string;
+        deadline: Date;
+        tenant: { name: string };
+      };
+    },
+    kind: DispatchKind = 'invite',
+  ): Promise<string> {
     const magicLink = await this.prisma.magicLink.findFirst({
       where: {
         quotationId: qs.quotationId,
@@ -350,6 +357,19 @@ export class WhatsappService {
         minute: '2-digit',
       },
     );
+
+    if (kind === 'reminder') {
+      return [
+        `Olá, ${contact}!`,
+        `*Lembrete:* a cotação de *${qs.quotation.tenant.name}* encerra amanhã.`,
+        '',
+        `*${qs.quotation.title}*`,
+        `Prazo: ${deadlineStr}`,
+        '',
+        'Ainda dá tempo de enviar sua proposta:',
+        magicLinkUrl,
+      ].join('\n');
+    }
 
     return [
       `Olá, ${contact}! 👋`,

@@ -231,5 +231,49 @@ describe('MailService', () => {
         },
       });
     });
+
+    it('should use reminder subject and copy when kind is reminder', async () => {
+      const mockQs = {
+        id: 'qs-1',
+        quotationId: 'q-1',
+        supplierId: 's-1',
+        quotation: {
+          tenantId: 'tenant-1',
+          title: 'Cotação de Teste',
+          deadline: new Date('2026-06-01T15:00:00Z'),
+          tenant: { name: 'Comprador Ltda' },
+          items: [
+            {
+              product: { name: 'Produto 1', unit: 'UN' },
+              quantity: 10,
+              observation: null,
+            },
+          ],
+        },
+        supplier: {
+          name: 'Fornecedor A',
+          email: 'fornecedor@email.com',
+          contactName: 'José',
+        },
+      };
+
+      prismaService.quotationSupplier.findUnique.mockResolvedValue(mockQs);
+      prismaService.magicLink.findFirst.mockResolvedValue({
+        id: 'ml-1',
+        token: 'magic-token-abc',
+      });
+      prismaService.quotationSupplier.update.mockResolvedValue({});
+
+      await service.sendEmail('qs-1', 'reminder');
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject:
+            'Lembrete: a cotação encerra amanhã — Cotação de Teste - Comprador Ltda',
+          html: expect.stringContaining('Lembrete: a cotação encerra amanhã'),
+        }),
+      );
+      expect(mockSend.mock.calls[0][0].html).toContain('Enviar Proposta Agora');
+    });
   });
 });

@@ -1,6 +1,9 @@
 export const TASK_QUEUE = Symbol('TASK_QUEUE');
 
-export type TaskQueueName = 'email-dispatch' | 'whatsapp-dispatch';
+export type TaskQueueName =
+  | 'email-dispatch'
+  | 'whatsapp-dispatch'
+  | 'remind-quotation';
 
 export interface EnqueueOptions {
   /** Atraso antes da primeira tentativa (ex.: agendar lembrete). */

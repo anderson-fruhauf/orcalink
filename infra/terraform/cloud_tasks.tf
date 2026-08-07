@@ -65,6 +65,32 @@ resource "google_cloud_tasks_queue" "whatsapp_dispatch" {
   depends_on = [google_project_service.cloudtasks]
 }
 
+# Lembretes: uma task por cotação (fan-out para email/whatsapp no handler).
+resource "google_cloud_tasks_queue" "remind_quotation" {
+  name     = "remind-quotation"
+  location = var.gcp_region
+  project  = var.gcp_project_id
+
+  rate_limits {
+    max_dispatches_per_second = 5
+    max_concurrent_dispatches = 10
+  }
+
+  retry_config {
+    max_attempts       = 5
+    min_backoff        = "10s"
+    max_backoff        = "300s"
+    max_retry_duration = "3600s"
+    max_doublings      = 4
+  }
+
+  stackdriver_logging_config {
+    sampling_ratio = 1.0
+  }
+
+  depends_on = [google_project_service.cloudtasks]
+}
+
 # A API enfileira tasks...
 resource "google_project_iam_member" "api_tasks_enqueuer" {
   project = var.gcp_project_id
@@ -112,5 +138,42 @@ resource "google_cloud_scheduler_job" "expire_quotations" {
   depends_on = [
     google_project_service.cloudscheduler,
     google_cloud_run_v2_service_iam_member.worker_invoker,
+  ]
+}
+
+# Lembretes: cotações a 1 dia do prazo — fan-out por cotação (task 28).
+resource "google_cloud_scheduler_job" "remind_pending_quotations" {
+  name        = "orcalink-remind-pending-quotations"
+  description = "Enfileira lembretes para cotações OPEN com deadline amanhã"
+  schedule    = "0 9 * * *"
+  time_zone   = "America/Sao_Paulo"
+  region      = var.gcp_region
+  project     = var.gcp_project_id
+
+  attempt_deadline = "320s"
+
+  retry_config {
+    retry_count = 3
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "${local.worker_url}/api/tasks/remind-pending-quotations"
+    body        = base64encode("{}")
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    oidc_token {
+      service_account_email = google_service_account.tasks_invoker.email
+      audience              = local.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_service_iam_member.worker_invoker,
+    google_cloud_tasks_queue.remind_quotation,
   ]
 }

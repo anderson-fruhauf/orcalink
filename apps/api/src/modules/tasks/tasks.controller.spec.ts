@@ -9,6 +9,8 @@ describe('TasksController', () => {
 
   const mockQuotationService = {
     expireExpiredQuotations: jest.fn(),
+    enqueueDeadlineReminders: jest.fn(),
+    sendDeadlineReminder: jest.fn(),
   };
 
   const mockTasksService = {
@@ -108,6 +110,40 @@ describe('TasksController', () => {
 
       expect(mockQuotationService.expireExpiredQuotations).toHaveBeenCalled();
       expect(result).toEqual({ expiredCount: 3 });
+    });
+  });
+
+  describe('remindPendingQuotations', () => {
+    it('deve chamar enqueueDeadlineReminders', async () => {
+      mockQuotationService.enqueueDeadlineReminders.mockResolvedValue({
+        enqueuedCount: 2,
+      });
+
+      const result = await controller.remindPendingQuotations({
+        headers: {},
+      } as any);
+
+      expect(mockQuotationService.enqueueDeadlineReminders).toHaveBeenCalled();
+      expect(result).toEqual({ enqueuedCount: 2 });
+    });
+  });
+
+  describe('remindQuotation', () => {
+    it('deve chamar sendDeadlineReminder', async () => {
+      mockQuotationService.sendDeadlineReminder.mockResolvedValue({
+        status: 'enqueued',
+        notified: 1,
+      });
+
+      const result = await controller.remindQuotation(
+        { quotationId: 'q-1', tenantId: 't-1' },
+        { headers: {} } as any,
+      );
+
+      expect(mockQuotationService.sendDeadlineReminder).toHaveBeenCalledWith(
+        'q-1',
+      );
+      expect(result).toEqual({ status: 'enqueued', notified: 1 });
     });
   });
 });

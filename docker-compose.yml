@@ -27,6 +27,7 @@ services:
       - -port=8123
       - -queue=projects/orcalink/locations/us-central1/queues/email-dispatch
       - -queue=projects/orcalink/locations/us-central1/queues/whatsapp-dispatch
+      - -queue=projects/orcalink/locations/us-central1/queues/remind-quotation
     ports:
       - "8123:8123"
     extra_hosts:

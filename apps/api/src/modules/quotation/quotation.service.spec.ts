@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { TASK_QUEUE } from '../tasks/task-queue.interface.js';
+import { getTomorrowBounds } from '../../common/utils/date.js';
 
 describe('QuotationService', () => {
   let service: QuotationService;
@@ -713,6 +714,160 @@ describe('QuotationService', () => {
 
       expect(prismaService.quotation.updateMany).not.toHaveBeenCalled();
       expect(result).toEqual({ expiredCount: 0 });
+    });
+  });
+
+  describe('enqueueDeadlineReminders', () => {
+    it('should enqueue one remind-quotation task per matching quotation', async () => {
+      prismaService.quotation.findMany.mockResolvedValue([
+        { id: 'q-1', tenantId: 't-1' },
+        { id: 'q-2', tenantId: 't-2' },
+      ]);
+
+      const result = await service.enqueueDeadlineReminders();
+
+      expect(prismaService.quotation.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'OPEN',
+          reminderSentAt: null,
+          deadline: {
+            gte: expect.any(Date),
+            lt: expect.any(Date),
+          },
+          suppliers: {
+            some: {
+              responseStatus: 'PENDING',
+            },
+          },
+        },
+        select: {
+          id: true,
+          tenantId: true,
+        },
+      });
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledTimes(2);
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'remind-quotation',
+        { quotationId: 'q-1', tenantId: 't-1' },
+        expect.objectContaining({
+          dedupeKey: expect.stringMatching(/^remind:q-1:\d{4}-\d{2}-\d{2}$/),
+        }),
+      );
+      expect(result).toEqual({ enqueuedCount: 2 });
+    });
+  });
+
+  describe('sendDeadlineReminder', () => {
+    const tomorrowDeadline = () => {
+      const { start } = getTomorrowBounds();
+      return new Date(start.getTime() + 12 * 60 * 60 * 1000);
+    };
+
+    it('should dispatch PENDING suppliers by channel and set reminderSentAt', async () => {
+      const deadline = tomorrowDeadline();
+
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 't-1',
+        status: 'OPEN',
+        reminderSentAt: null,
+        deadline,
+        suppliers: [
+          { id: 'qs-email', channel: 'EMAIL' },
+          { id: 'qs-wa', channel: 'WHATSAPP' },
+          { id: 'qs-email-2', channel: 'EMAIL' },
+        ],
+      });
+
+      const result = await service.sendDeadlineReminder('q-1');
+
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          quotationSupplierId: 'qs-email',
+          kind: 'reminder',
+        }),
+        expect.any(Object),
+      );
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'email-dispatch',
+        expect.objectContaining({
+          quotationSupplierId: 'qs-email-2',
+          kind: 'reminder',
+        }),
+        expect.any(Object),
+      );
+      expect(mockTaskQueue.enqueue).toHaveBeenCalledWith(
+        'whatsapp-dispatch',
+        expect.objectContaining({
+          quotationId: 'q-1',
+          quotationSupplierIds: ['qs-wa'],
+          kind: 'reminder',
+        }),
+        expect.any(Object),
+      );
+      expect(prismaService.quotationSupplier.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['qs-email', 'qs-wa', 'qs-email-2'] } },
+        data: {
+          dispatchStatus: 'QUEUED',
+          emailError: null,
+          whatsappError: null,
+          whatsappSentAt: null,
+        },
+      });
+      expect(prismaService.quotation.update).toHaveBeenCalledWith({
+        where: { id: 'q-1' },
+        data: { reminderSentAt: expect.any(Date) },
+      });
+      expect(result).toEqual({ status: 'enqueued', notified: 3 });
+    });
+
+    it('should skip when reminder already sent', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 't-1',
+        status: 'OPEN',
+        reminderSentAt: new Date(),
+        deadline: tomorrowDeadline(),
+        suppliers: [{ id: 'qs-1', channel: 'EMAIL' }],
+      });
+
+      const result = await service.sendDeadlineReminder('q-1');
+
+      expect(mockTaskQueue.enqueue).not.toHaveBeenCalled();
+      expect(result).toEqual({ status: 'already_reminded', notified: 0 });
+    });
+
+    it('should skip when deadline is outside tomorrow window', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 't-1',
+        status: 'OPEN',
+        reminderSentAt: null,
+        deadline: new Date('2030-01-01T12:00:00.000Z'),
+        suppliers: [{ id: 'qs-1', channel: 'EMAIL' }],
+      });
+
+      const result = await service.sendDeadlineReminder('q-1');
+
+      expect(mockTaskQueue.enqueue).not.toHaveBeenCalled();
+      expect(result).toEqual({ status: 'skipped_outside_window', notified: 0 });
+    });
+
+    it('should skip when there are no PENDING suppliers', async () => {
+      prismaService.quotation.findUnique.mockResolvedValue({
+        id: 'q-1',
+        tenantId: 't-1',
+        status: 'OPEN',
+        reminderSentAt: null,
+        deadline: tomorrowDeadline(),
+        suppliers: [],
+      });
+
+      const result = await service.sendDeadlineReminder('q-1');
+
+      expect(mockTaskQueue.enqueue).not.toHaveBeenCalled();
+      expect(result).toEqual({ status: 'skipped_no_pending', notified: 0 });
     });
   });
 

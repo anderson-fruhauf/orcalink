@@ -1,4 +1,12 @@
-import { IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+
+export type DispatchKind = 'invite' | 'reminder';
 
 export class EmailDispatchDto {
   @IsUUID()
@@ -10,6 +18,10 @@ export class EmailDispatchDto {
   @IsOptional()
   @IsString()
   correlationId?: string;
+
+  @IsOptional()
+  @IsIn(['invite', 'reminder'])
+  kind?: DispatchKind;
 }
 
 export class WhatsappDispatchDto {
@@ -26,4 +38,16 @@ export class WhatsappDispatchDto {
   @IsOptional()
   @IsString()
   correlationId?: string;
+
+  @IsOptional()
+  @IsIn(['invite', 'reminder'])
+  kind?: DispatchKind;
+}
+
+export class RemindQuotationDto {
+  @IsUUID()
+  quotationId!: string;
+
+  @IsUUID()
+  tenantId!: string;
 }

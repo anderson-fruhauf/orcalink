@@ -10,6 +10,7 @@ import {
   PLAN_LIMIT_MESSAGE,
 } from '../../common/constants/error-messages.js';
 import { Resend } from 'resend';
+import type { DispatchKind } from '../tasks/dto/dispatch-task.dto.js';
 
 @Injectable()
 export class MailService {
@@ -64,7 +65,10 @@ export class MailService {
   /**
    * Sends an email directly using Resend SDK.
    */
-  async sendEmail(quotationSupplierId: string): Promise<void> {
+  async sendEmail(
+    quotationSupplierId: string,
+    kind: DispatchKind = 'invite',
+  ): Promise<void> {
     const qs = await this.prisma.quotationSupplier.findUnique({
       where: { id: quotationSupplierId },
       include: {
@@ -146,13 +150,28 @@ export class MailService {
         },
       );
 
+      const isReminder = kind === 'reminder';
+      const headline = isReminder
+        ? 'Lembrete: a cotação encerra amanhã'
+        : `Olá, ${qs.supplier.contactName || qs.supplier.name}`;
+      const intro = isReminder
+        ? `Ainda não recebemos sua proposta para a cotação de <strong>${qs.quotation.tenant.name}</strong>. O prazo encerra amanhã — envie agora pelo link abaixo.`
+        : `A empresa <strong>${qs.quotation.tenant.name}</strong> solicita uma cotação de preços para os itens listados abaixo.`;
+      const subject = isReminder
+        ? `Lembrete: a cotação encerra amanhã — ${qs.quotation.title} - ${qs.quotation.tenant.name}`
+        : `Solicitação de Cotação: ${qs.quotation.title} - ${qs.quotation.tenant.name}`;
+      const ctaLabel = isReminder ? 'Enviar Proposta Agora' : 'Enviar Proposta';
+      const pageTitle = isReminder
+        ? 'Lembrete de Cotação — Orçalink'
+        : 'Solicitação de Cotação — Orçalink';
+
       // Construct visually rich HTML email matching section 10 of styles.md
       const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Solicitação de Cotação — Orçalink</title>
+  <title>${pageTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; padding: 40px 20px;">
@@ -169,10 +188,10 @@ export class MailService {
           <tr>
             <td style="padding: 40px 32px;">
               <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0F172A; line-height: 28px;">
-                Olá, ${qs.supplier.contactName || qs.supplier.name}
+                ${headline}
               </h1>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #334155;">
-                A empresa <strong>${qs.quotation.tenant.name}</strong> solicita uma cotação de preços para os itens listados abaixo.
+                ${intro}
               </p>
               
               <!-- Quotation Details Card -->
@@ -199,7 +218,7 @@ export class MailService {
                 <tr>
                   <td align="center" style="padding-top: 10px; padding-bottom: 10px;">
                     <a href="${magicLinkUrl}" target="_blank" style="display: inline-block; background-color: #6366F1; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); text-align: center;">
-                      Enviar Proposta
+                      ${ctaLabel}
                     </a>
                   </td>
                 </tr>
@@ -234,7 +253,7 @@ export class MailService {
       const { error } = await this.resend.emails.send({
         from: `Orçalink <${senderEmail}>`,
         to: [qs.supplier.email],
-        subject: `Solicitação de Cotação: ${qs.quotation.title} - ${qs.quotation.tenant.name}`,
+        subject,
         html: htmlContent,
       });
 

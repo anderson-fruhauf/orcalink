@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -15,9 +16,16 @@ import { AssociateSuppliersDto } from './dto/associate-suppliers.dto.js';
 import { MailService } from '../mail/mail.service.js';
 import { UpdateQuotationSupplierChannelDto } from './dto/update-quotation-supplier-channel.dto.js';
 import { TASK_QUEUE, type TaskQueue } from '../tasks/task-queue.interface.js';
+import type { DispatchKind } from '../tasks/dto/dispatch-task.dto.js';
+import {
+  getTomorrowBounds,
+  isDeadlineTomorrow,
+} from '../../common/utils/date.js';
 
 @Injectable()
 export class QuotationService {
+  private readonly logger = new Logger(QuotationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
@@ -429,6 +437,7 @@ export class QuotationService {
     quotationId: string,
     tenantId: string,
     suppliers: Array<{ id: string; channel?: string }>,
+    kind: DispatchKind = 'invite',
   ): Promise<void> {
     const whatsappSuppliers = suppliers.filter(
       (supplier) => supplier.channel === 'WHATSAPP',
@@ -447,6 +456,8 @@ export class QuotationService {
           dispatchStatus: 'QUEUED',
           emailError: null,
           whatsappError: null,
+          // Permite reenvio (resend/lembrete) após um SENT anterior.
+          whatsappSentAt: null,
         },
       });
     }
@@ -458,6 +469,7 @@ export class QuotationService {
           tenantId,
           quotationSupplierId: supplier.id,
           correlationId,
+          kind,
         },
         {
           dedupeKey: `email:${supplier.id}:${dispatchRound}`,
@@ -473,12 +485,110 @@ export class QuotationService {
           quotationId,
           quotationSupplierIds: whatsappSuppliers.map((s) => s.id),
           correlationId,
+          kind,
         },
         {
           dedupeKey: `whatsapp:${quotationId}:${dispatchRound}`,
         },
       );
     }
+  }
+
+  /**
+   * Cloud Scheduler: enfileira uma task por cotação OPEN com deadline amanhã
+   * e fornecedores PENDING ainda sem lembrete.
+   */
+  async enqueueDeadlineReminders(): Promise<{ enqueuedCount: number }> {
+    const { start, end, dateKey } = getTomorrowBounds();
+
+    const quotations = await this.prisma.quotation.findMany({
+      where: {
+        status: 'OPEN',
+        reminderSentAt: null,
+        deadline: {
+          gte: start,
+          lt: end,
+        },
+        suppliers: {
+          some: {
+            responseStatus: 'PENDING',
+          },
+        },
+      },
+      select: {
+        id: true,
+        tenantId: true,
+      },
+    });
+
+    for (const quotation of quotations) {
+      await this.taskQueue.enqueue(
+        'remind-quotation',
+        {
+          quotationId: quotation.id,
+          tenantId: quotation.tenantId,
+        },
+        {
+          dedupeKey: `remind:${quotation.id}:${dateKey}`,
+        },
+      );
+    }
+
+    return { enqueuedCount: quotations.length };
+  }
+
+  /**
+   * Processa lembrete de uma cotação: notifica PENDING no canal da cotação.
+   */
+  async sendDeadlineReminder(
+    quotationId: string,
+  ): Promise<{ status: string; notified: number }> {
+    const quotation = await this.prisma.quotation.findUnique({
+      where: { id: quotationId },
+      include: {
+        suppliers: {
+          where: { responseStatus: 'PENDING' },
+          select: { id: true, channel: true },
+        },
+      },
+    });
+
+    if (!quotation) {
+      this.logger.warn(
+        `Deadline reminder skipped: quotation ${quotationId} not found`,
+      );
+      return { status: 'ignored', notified: 0 };
+    }
+
+    if (quotation.status !== 'OPEN') {
+      return { status: 'skipped_not_open', notified: 0 };
+    }
+
+    if (quotation.reminderSentAt) {
+      return { status: 'already_reminded', notified: 0 };
+    }
+
+    if (!isDeadlineTomorrow(quotation.deadline)) {
+      return { status: 'skipped_outside_window', notified: 0 };
+    }
+
+    if (quotation.suppliers.length === 0) {
+      return { status: 'skipped_no_pending', notified: 0 };
+    }
+
+    await this.dispatchQuotationInvites(
+      quotation.id,
+      quotation.tenantId,
+      quotation.suppliers,
+      'reminder',
+    );
+
+    await this.prisma.quotation.update({
+      where: { id: quotation.id },
+      data: { reminderSentAt: new Date() },
+    });
+
+    return { status: 'enqueued', notified: quotation.suppliers.length };
   }
 
   async close(id: string): Promise<Quotation> {

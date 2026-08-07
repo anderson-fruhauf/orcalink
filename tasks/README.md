@@ -47,3 +47,4 @@ Tasks fora do MVP, executadas após o P0.
 | # | Task | Camada | Depende de |
 |---|---|---|---|
 | 23 | Integração WhatsApp (QR Code, não-oficial) | Backend + Frontend | 14, 15, 16, 22, 24 |
+| 28 | Lembretes Automáticos (1 dia antes do prazo) | Backend + Infra | 14, 15, 20, 23, 24 |

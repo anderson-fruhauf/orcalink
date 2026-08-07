@@ -14,6 +14,7 @@ import { CloudTasksGuard } from './cloud-tasks.guard.js';
 import { TasksService } from './tasks.service.js';
 import {
   EmailDispatchDto,
+  RemindQuotationDto,
   WhatsappDispatchDto,
 } from './dto/dispatch-task.dto.js';
 
@@ -34,6 +35,7 @@ export class TasksController {
       tenantId: body.tenantId,
       quotationSupplierId: body.quotationSupplierId,
       correlationId: body.correlationId ?? null,
+      kind: body.kind ?? 'invite',
     });
 
     const result = await this.tasksService.handleEmailDispatch(body);
@@ -60,6 +62,7 @@ export class TasksController {
       tenantId: body.tenantId,
       quotationId: body.quotationId,
       correlationId: body.correlationId ?? null,
+      kind: body.kind ?? 'invite',
     });
 
     const result = await this.tasksService.handleWhatsappDispatch(body);
@@ -87,6 +90,50 @@ export class TasksController {
       JSON.stringify({
         queueName: 'expire-quotations',
         expiredCount: result.expiredCount,
+      }),
+    );
+
+    return result;
+  }
+
+  @Post('remind-pending-quotations')
+  @HttpCode(HttpStatus.OK)
+  async remindPendingQuotations(@Req() request: Request) {
+    this.logTask('remind-pending-quotations', request, {});
+
+    const result = await this.quotationService.enqueueDeadlineReminders();
+
+    this.logger.log(
+      JSON.stringify({
+        queueName: 'remind-pending-quotations',
+        enqueuedCount: result.enqueuedCount,
+      }),
+    );
+
+    return result;
+  }
+
+  @Post('remind-quotation')
+  @HttpCode(HttpStatus.OK)
+  async remindQuotation(
+    @Body() body: RemindQuotationDto,
+    @Req() request: Request,
+  ) {
+    this.logTask('remind-quotation', request, {
+      quotationId: body.quotationId,
+      tenantId: body.tenantId,
+    });
+
+    const result = await this.quotationService.sendDeadlineReminder(
+      body.quotationId,
+    );
+
+    this.logger.log(
+      JSON.stringify({
+        queueName: 'remind-quotation',
+        result,
+        quotationId: body.quotationId,
+        tenantId: body.tenantId,
       }),
     );
 

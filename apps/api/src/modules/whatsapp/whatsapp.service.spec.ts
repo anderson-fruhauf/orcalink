@@ -234,6 +234,46 @@ describe('WhatsappService', () => {
       });
     });
 
+    it('should send reminder copy when kind is reminder', async () => {
+      mockPrisma.tenant.findUnique.mockResolvedValue({ plan: 'PRO' });
+      mockPrisma.whatsappSession.findUnique.mockResolvedValue({
+        state: 'CONNECTED',
+        creds: { me: { id: '5511999999999' } },
+      });
+      mockPrisma.quotationSupplier.findMany.mockResolvedValue([
+        whatsappSupplier,
+      ]);
+      mockPrisma.magicLink.findFirst.mockResolvedValue({ token: 'abc123' });
+      mockPrisma.quotationSupplier.update.mockResolvedValue({});
+
+      let sentText = '';
+      provider.withConnection.mockImplementation(
+        async (_tenantId: string, fn: (sock: any) => Promise<void>) => {
+          const sock = {
+            onWhatsApp: jest
+              .fn()
+              .mockResolvedValue([
+                { exists: true, jid: '5511999999999@s.whatsapp.net' },
+              ]),
+            sendMessage: jest.fn().mockImplementation(async (_jid, payload) => {
+              sentText = payload.text;
+            }),
+          };
+          await fn(sock);
+        },
+      );
+
+      await service.sendQuotationMessages(
+        'tenant-1',
+        'q-1',
+        undefined,
+        'reminder',
+      );
+
+      expect(sentText).toContain('Lembrete:');
+      expect(sentText).toContain('encerra amanhã');
+    });
+
     it('should fallback to email when session is not connected', async () => {
       mockPrisma.tenant.findUnique.mockResolvedValue({ plan: 'PRO' });
       mockPrisma.whatsappSession.findUnique.mockResolvedValue({
